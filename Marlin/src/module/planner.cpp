@@ -3286,7 +3286,8 @@ void Planner::set_position_mm(const xyze_pos_t &xyze) {
 void Planner::reset_acceleration_rates() {
   uint32_t highest_rate = 1;
   LOOP_DISTINCT_AXES(i) {
-    max_acceleration_steps_per_s2[i] = settings.max_acceleration_mm_per_s2[i] * settings.axis_steps_per_mm[i];
+    const float axis_max_accel = settings.max_acceleration_mm_per_s2[i];
+    max_acceleration_steps_per_s2[i] = axis_max_accel * settings.axis_steps_per_mm[i];
     if (TERN1(DISTINCT_E_FACTORS, i < E_AXIS || i == E_AXIS_N(active_extruder)))
       NOLESS(highest_rate, max_acceleration_steps_per_s2[i]);
   }

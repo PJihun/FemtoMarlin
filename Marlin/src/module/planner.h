@@ -1017,8 +1017,9 @@ class Planner {
         float limit_value = max_value;
         LOOP_LOGICAL_AXES(idx) {
           if (unit_vec[idx]) {
-            if (limit_value * ABS(unit_vec[idx]) > settings.max_acceleration_mm_per_s2[idx])
-              limit_value = ABS(settings.max_acceleration_mm_per_s2[idx] / unit_vec[idx]);
+            const float axis_limit = settings.max_acceleration_mm_per_s2[idx];
+            if (limit_value * ABS(unit_vec[idx]) > axis_limit)
+              limit_value = ABS(axis_limit / unit_vec[idx]);
           }
         }
         return limit_value;
