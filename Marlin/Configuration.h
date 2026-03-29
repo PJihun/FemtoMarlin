@@ -866,7 +866,7 @@
 #endif
 
 // Enable for FEMTO bilateration kinematics (2D cable-drive XY + separate Z)
-//#define FEMTO_BILAT
+#define FEMTO_BILAT
 #if ENABLED(FEMTO_BILAT)
 	#define FEMTO_BILAT_ANCHOR_A_X 0.0f
 	#define FEMTO_BILAT_ANCHOR_A_Y 0.0f
@@ -1068,7 +1068,7 @@
  * When changing speed and direction, if the difference is less than the
  * value set here, it may happen instantaneously.
  */
-//#define CLASSIC_JERK
+#define CLASSIC_JERK
 #if ENABLED(CLASSIC_JERK)
 #define DEFAULT_XJERK 10.0
 #define DEFAULT_YJERK 10.0

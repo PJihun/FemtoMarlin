@@ -64,7 +64,7 @@ void forward_kinematics(const_float_t len_a, const_float_t len_b) {
 
   const float a = (sq(len_a) - sq(len_b) + anchor_dist2) / (2.0f * anchor_dist);
   const float h2 = sq(len_a) - sq(a);
-  const float h = SQRT(MAX(h2, 0.0f));
+  const float h = SQRT(_MAX(h2, 0.0f));
 
   const float ux = anchor_dx / anchor_dist,
               uy = anchor_dy / anchor_dist;

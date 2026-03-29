@@ -1593,9 +1593,13 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
     #error "FEMTO_BILAT requires FEMTO_BILAT_ANCHOR_A_X/Y and FEMTO_BILAT_ANCHOR_B_X/Y."
   #elif !defined(FEMTO_BILAT_SEGMENTS_PER_SECOND)
     #error "FEMTO_BILAT requires FEMTO_BILAT_SEGMENTS_PER_SECOND."
-  #elif (FEMTO_BILAT_ANCHOR_A_X == FEMTO_BILAT_ANCHOR_B_X) && (FEMTO_BILAT_ANCHOR_A_Y == FEMTO_BILAT_ANCHOR_B_Y)
-    #error "FEMTO_BILAT anchors A and B must not be identical."
   #endif
+
+  static_assert(
+    !(float(FEMTO_BILAT_ANCHOR_A_X) == float(FEMTO_BILAT_ANCHOR_B_X)
+      && float(FEMTO_BILAT_ANCHOR_A_Y) == float(FEMTO_BILAT_ANCHOR_B_Y)),
+    "FEMTO_BILAT anchors A and B must not be identical."
+  );
 #endif
 
 /**

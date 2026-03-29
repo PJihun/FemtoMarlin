@@ -86,7 +86,7 @@ void GcodeSuite::M593() {
   if (parser.seen('F')) {
     const float freq = parser.value_float();
     if (freq < 0)
-      SERIAL_ECHOLNPGM(GCODE_ERR_MSG("Frequency (F) must be >= 0"));
+      SERIAL_ECHO_MSG("?Frequency (F) must be >= 0");
     else {
       if (for_X) stepper.set_shaping_frequency(X_AXIS, freq);
       if (for_Y) stepper.set_shaping_frequency(Y_AXIS, freq);
