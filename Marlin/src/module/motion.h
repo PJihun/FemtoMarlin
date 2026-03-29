@@ -581,6 +581,11 @@ void home_if_needed(const bool keeplev=false);
         #endif
       );
 
+    #elif ENABLED(FEMTO_BILAT)
+
+      return COORDINATE_OKAY(rx, X_MIN_POS - fslop + inset, X_MAX_POS + fslop - inset)
+          && COORDINATE_OKAY(ry, Y_MIN_POS - fslop + inset, Y_MAX_POS + fslop - inset);
+
     #endif
   }
 
