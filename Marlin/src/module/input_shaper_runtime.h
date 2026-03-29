@@ -38,6 +38,5 @@ extern input_shaper_runtime_t input_shaper_runtime;
 
 void input_shaper_runtime_reset();
 void input_shaper_runtime_apply(const uint8_t axis_mask, const float x_hz, const float y_hz, const float damping, const float smoothing);
-float input_shaper_runtime_axis_accel_limit(const uint8_t axis_index, const float axis_max_accel);
 
 #endif // M970_M979_GCODE

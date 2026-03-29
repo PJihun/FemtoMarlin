@@ -83,28 +83,4 @@ void input_shaper_runtime_apply(const uint8_t axis_mask, const float x_hz, const
   input_shaper_runtime.axis_mask = active_axes ? active_axes : effective_mask;
 }
 
-float input_shaper_runtime_axis_accel_limit(const uint8_t axis_index, const float axis_max_accel) {
-  if (!input_shaper_runtime.enabled || axis_max_accel <= 0.0f)
-    return axis_max_accel;
-
-  if (axis_index != X_AXIS && axis_index != Y_AXIS)
-    return axis_max_accel;
-
-  const bool enabled_for_axis = axis_index == X_AXIS ? axis_includes_x(input_shaper_runtime.axis_mask) : axis_includes_y(input_shaper_runtime.axis_mask);
-  if (!enabled_for_axis)
-    return axis_max_accel;
-
-  const float axis_hz = axis_index == X_AXIS ? input_shaper_runtime.x_hz : input_shaper_runtime.y_hz;
-  if (axis_hz <= 0.0f)
-    return axis_max_accel;
-
-  const float freq_scale = clampf(axis_hz / 60.0f, 0.45f, 1.20f);
-  const float damping_scale = clampf(1.0f - input_shaper_runtime.damping * 0.40f, 0.50f, 1.00f);
-  const float smoothing_scale = clampf(1.0f - input_shaper_runtime.smoothing * 0.85f, 0.20f, 1.00f);
-
-  const float shaped = axis_max_accel * freq_scale * damping_scale * smoothing_scale;
-  const float min_limited = axis_max_accel * 0.20f;
-  return clampf(shaped, min_limited, axis_max_accel);
-}
-
 #endif // M970_M979_GCODE
