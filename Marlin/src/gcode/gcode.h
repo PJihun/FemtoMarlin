@@ -256,6 +256,7 @@
  * M553 - Get or set IP netmask. (Requires enabled Ethernet port)
  * M554 - Get or set IP gateway. (Requires enabled Ethernet port)
  * M569 - Enable stealthChop on an axis. (Requires at least one _DRIVER_TYPE to be TMC2130/2160/2208/2209/5130/5160)
+ * M593 - Get or Set Input Shaping parameters. (Requires HAS_ZV_SHAPING)
  * M575 - Change the serial baud rate. (Requires BAUD_RATE_GCODE)
  * M600 - Pause for filament change: "M600 X<pos> Y<pos> Z<raise> E<first_retract> L<later_retract>". (Requires ADVANCED_PAUSE_FEATURE)
  * M603 - Configure filament change: "M603 T<tool> U<unload_length> L<load_length>". (Requires ADVANCED_PAUSE_FEATURE)
@@ -286,6 +287,7 @@
  * M871 - Print/reset/clear first layer temperature offset values. (Requires PTC_PROBE, PTC_BED, or PTC_HOTEND)
  * M876 - Handle Prompt Response. (Requires HOST_PROMPT_SUPPORT and not EMERGENCY_PARSER)
  * M900 - Get or Set Linear Advance K-factor. (Requires LIN_ADVANCE)
+ * M970-M979 - Input shaper tuning protocol scaffold. (Requires M970_M979_GCODE)
  * M906 - Set or get motor current in milliamps using axis codes XYZE, etc. Report values if no axis codes given. (Requires at least one _DRIVER_TYPE defined as TMC2130/2160/5130/5160/2208/2209/2660 or L6470)
  * M907 - Set digital trimpot motor current using axis codes. (Requires a board with digital trimpots)
  * M908 - Control digital trimpot directly. (Requires HAS_MOTOR_CURRENT_DAC or DIGIPOTSS_PIN)
@@ -1133,9 +1135,27 @@ private:
     static void M871();
   #endif
 
+  #if HAS_ZV_SHAPING
+    static void M593();
+    static void M593_report(const bool forReplay=true);
+  #endif
+
   #if ENABLED(LIN_ADVANCE)
     static void M900();
     static void M900_report(const bool forReplay=true);
+  #endif
+
+  #if ENABLED(M970_M979_GCODE)
+    static void M970();
+    static void M971();
+    static void M972();
+    static void M973();
+    static void M974();
+    static void M975();
+    static void M976();
+    static void M977();
+    static void M978();
+    static void M979();
   #endif
 
   #if HAS_TRINAMIC_CONFIG

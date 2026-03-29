@@ -1370,6 +1370,10 @@
   #define HAS_CLASSIC_E_JERK 1
 #endif
 
+#if ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y, INPUT_SHAPING_Z)
+  #define HAS_ZV_SHAPING 1
+#endif
+
 //
 // Serial Port Info
 //

@@ -1560,8 +1560,8 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
 /**
  * Allow only one kinematic type to be defined
  */
-#if MANY(DELTA, MORGAN_SCARA, MP_SCARA, AXEL_TPARA, COREXY, COREXZ, COREYZ, COREYX, COREZX, COREZY, MARKFORGED_XY, MARKFORGED_YX, FOAMCUTTER_XYUV)
-  #error "Please enable only one of DELTA, MORGAN_SCARA, MP_SCARA, AXEL_TPARA, COREXY, COREXZ, COREYZ, COREYX, COREZX, COREZY, MARKFORGED_XY, MARKFORGED_YX, or FOAMCUTTER_XYUV."
+#if MANY(DELTA, MORGAN_SCARA, MP_SCARA, AXEL_TPARA, COREXY, COREXZ, COREYZ, COREYX, COREZX, COREZY, MARKFORGED_XY, MARKFORGED_YX, FOAMCUTTER_XYUV, FEMTO_BILAT)
+  #error "Please enable only one of DELTA, MORGAN_SCARA, MP_SCARA, AXEL_TPARA, COREXY, COREXZ, COREYZ, COREYX, COREZX, COREZY, MARKFORGED_XY, MARKFORGED_YX, FOAMCUTTER_XYUV, or FEMTO_BILAT."
 #endif
 
 /**
@@ -1586,10 +1586,49 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
 #endif
 
 /**
+ * FEMTO bilateration requirements
+ */
+#if ENABLED(FEMTO_BILAT)
+  #if !defined(FEMTO_BILAT_ANCHOR_A_X) || !defined(FEMTO_BILAT_ANCHOR_A_Y) || !defined(FEMTO_BILAT_ANCHOR_B_X) || !defined(FEMTO_BILAT_ANCHOR_B_Y)
+    #error "FEMTO_BILAT requires FEMTO_BILAT_ANCHOR_A_X/Y and FEMTO_BILAT_ANCHOR_B_X/Y."
+  #elif !defined(FEMTO_BILAT_SEGMENTS_PER_SECOND)
+    #error "FEMTO_BILAT requires FEMTO_BILAT_SEGMENTS_PER_SECOND."
+  #elif (FEMTO_BILAT_ANCHOR_A_X == FEMTO_BILAT_ANCHOR_B_X) && (FEMTO_BILAT_ANCHOR_A_Y == FEMTO_BILAT_ANCHOR_B_Y)
+    #error "FEMTO_BILAT anchors A and B must not be identical."
+  #endif
+#endif
+
+/**
  * Junction deviation is incompatible with kinematic systems.
  */
 #if HAS_JUNCTION_DEVIATION && IS_KINEMATIC
   #error "CLASSIC_JERK is required for DELTA and SCARA."
+#endif
+
+/**
+ * Input Shaping requirements
+ */
+#if HAS_ZV_SHAPING
+  #if DISABLED(FEMTO_BILAT)
+    #error "This fork currently supports Input Shaping only with FEMTO_BILAT kinematics."
+  #elif DISABLED(M970_M979_GCODE)
+    #error "This fork currently requires M970_M979_GCODE when Input Shaping is enabled."
+  #elif ENABLED(INPUT_SHAPING_Z)
+    #error "INPUT_SHAPING_Z is not yet supported in this fork."
+  #endif
+
+  #if ENABLED(INPUT_SHAPING_X)
+    static_assert((SHAPING_FREQ_X) > 0, "SHAPING_FREQ_X must be > 0.");
+    static_assert((SHAPING_ZETA_X) >= 0 && (SHAPING_ZETA_X) <= 1, "SHAPING_ZETA_X must be between 0 and 1.");
+  #endif
+  #if ENABLED(INPUT_SHAPING_Y)
+    static_assert((SHAPING_FREQ_Y) > 0, "SHAPING_FREQ_Y must be > 0.");
+    static_assert((SHAPING_ZETA_Y) >= 0 && (SHAPING_ZETA_Y) <= 1, "SHAPING_ZETA_Y must be between 0 and 1.");
+  #endif
+  #if ENABLED(INPUT_SHAPING_Z)
+    static_assert((SHAPING_FREQ_Z) > 0, "SHAPING_FREQ_Z must be > 0.");
+    static_assert((SHAPING_ZETA_Z) >= 0 && (SHAPING_ZETA_Z) <= 1, "SHAPING_ZETA_Z must be between 0 and 1.");
+  #endif
 #endif
 
 /**

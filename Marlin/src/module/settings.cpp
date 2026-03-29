@@ -36,7 +36,7 @@
  */
 
 // Change EEPROM version if the structure changes
-#define EEPROM_VERSION "V87"
+#define EEPROM_VERSION "V88"
 #define EEPROM_OFFSET 100
 
 // Check the integrity of data offsets.
@@ -108,6 +108,10 @@
 
 #if ENABLED(BACKLASH_COMPENSATION)
   #include "../feature/backlash.h"
+#endif
+
+#if ENABLED(M970_M979_GCODE)
+  #include "input_shaper_runtime.h"
 #endif
 
 #if HAS_FILAMENT_SENSOR
@@ -334,6 +338,14 @@ typedef struct SettingsDataStruct {
       xy_pos_t femto_bilat_anchor_a,
                femto_bilat_anchor_b;                    // M665 A B C D
       bool femto_bilat_solution_high;                   // M665 I
+    #endif
+    #if ENABLED(M970_M979_GCODE)
+      bool input_shaper_runtime_enabled;
+      uint8_t input_shaper_runtime_axis_mask;
+      float input_shaper_runtime_x_hz,
+            input_shaper_runtime_y_hz,
+            input_shaper_runtime_damping,
+            input_shaper_runtime_smoothing;
     #endif
   #endif
 
@@ -595,6 +607,29 @@ uint16_t MarlinSettings::datasize() { return sizeof(SettingsData); }
 
 void MarlinSettings::postprocess() {
   xyze_pos_t oldpos = current_position;
+
+  #if BOTH(HAS_ZV_SHAPING, M970_M979_GCODE)
+    // Keep ISR shaping state consistent with the persisted runtime profile.
+    const float runtime_damping = input_shaper_runtime.damping;
+    #if ENABLED(INPUT_SHAPING_X)
+      stepper.set_shaping_damping_ratio(X_AXIS, runtime_damping);
+      stepper.set_shaping_frequency(
+        X_AXIS,
+        input_shaper_runtime.enabled && TEST(input_shaper_runtime.axis_mask, 0)
+          ? input_shaper_runtime.x_hz
+          : 0.0f
+      );
+    #endif
+    #if ENABLED(INPUT_SHAPING_Y)
+      stepper.set_shaping_damping_ratio(Y_AXIS, runtime_damping);
+      stepper.set_shaping_frequency(
+        Y_AXIS,
+        input_shaper_runtime.enabled && TEST(input_shaper_runtime.axis_mask, 1)
+          ? input_shaper_runtime.y_hz
+          : 0.0f
+      );
+    #endif
+  #endif
 
   // steps per s2 needs to be updated to agree with units per s2
   planner.reset_acceleration_rates();
@@ -1012,6 +1047,16 @@ void MarlinSettings::postprocess() {
         EEPROM_WRITE(femto_bilat_anchor_a);
         EEPROM_WRITE(femto_bilat_anchor_b);
         EEPROM_WRITE(femto_bilat_solution_high);
+      #endif
+
+      #if ENABLED(M970_M979_GCODE)
+        _FIELD_TEST(input_shaper_runtime_enabled);
+        EEPROM_WRITE(input_shaper_runtime.enabled);
+        EEPROM_WRITE(input_shaper_runtime.axis_mask);
+        EEPROM_WRITE(input_shaper_runtime.x_hz);
+        EEPROM_WRITE(input_shaper_runtime.y_hz);
+        EEPROM_WRITE(input_shaper_runtime.damping);
+        EEPROM_WRITE(input_shaper_runtime.smoothing);
       #endif
     }
     #endif
@@ -1973,6 +2018,35 @@ void MarlinSettings::postprocess() {
           EEPROM_READ(femto_bilat_anchor_b);
           EEPROM_READ(femto_bilat_solution_high);
         #endif
+
+          #if ENABLED(M970_M979_GCODE)
+            bool input_shaper_runtime_enabled;
+            uint8_t input_shaper_runtime_axis_mask;
+            float input_shaper_runtime_x_hz,
+                  input_shaper_runtime_y_hz,
+                  input_shaper_runtime_damping,
+                  input_shaper_runtime_smoothing;
+
+            _FIELD_TEST(input_shaper_runtime_enabled);
+            EEPROM_READ(input_shaper_runtime_enabled);
+            EEPROM_READ(input_shaper_runtime_axis_mask);
+            EEPROM_READ(input_shaper_runtime_x_hz);
+            EEPROM_READ(input_shaper_runtime_y_hz);
+            EEPROM_READ(input_shaper_runtime_damping);
+            EEPROM_READ(input_shaper_runtime_smoothing);
+
+            if (!validating) {
+              input_shaper_runtime_apply(
+                input_shaper_runtime_axis_mask,
+                input_shaper_runtime_x_hz,
+                input_shaper_runtime_y_hz,
+                input_shaper_runtime_damping,
+                input_shaper_runtime_smoothing
+              );
+              if (!input_shaper_runtime_enabled)
+                input_shaper_runtime.enabled = false;
+            }
+          #endif
       }
       #endif
 
@@ -3044,6 +3118,8 @@ void MarlinSettings::reset() {
     #endif
   #endif
 
+  TERN_(M970_M979_GCODE, input_shaper_runtime_reset());
+
   //
   // Endstop Adjustments
   //
@@ -3615,6 +3691,27 @@ void MarlinSettings::reset() {
     // Linear Advance
     //
     TERN_(LIN_ADVANCE, gcode.M900_report(forReplay));
+
+    #if HAS_ZV_SHAPING
+      gcode.M593_report(forReplay);
+    #elif ENABLED(M970_M979_GCODE)
+      CONFIG_ECHO_HEADING("Input Shaper Runtime");
+      const char * const is_axis = input_shaper_runtime.axis_mask == 1 ? "X" : input_shaper_runtime.axis_mask == 2 ? "Y" : "XY";
+      CONFIG_ECHO_START();
+      SERIAL_ECHOPGM("  ; IS_RUNTIME EN=");
+      SERIAL_ECHO(int(input_shaper_runtime.enabled));
+      SERIAL_ECHOPGM(" AXIS=");
+      SERIAL_ECHO(is_axis);
+      SERIAL_ECHOPGM(" X_HZ=");
+      SERIAL_ECHO_F(input_shaper_runtime.x_hz, 3);
+      SERIAL_ECHOPGM(" Y_HZ=");
+      SERIAL_ECHO_F(input_shaper_runtime.y_hz, 3);
+      SERIAL_ECHOPGM(" DAMP=");
+      SERIAL_ECHO_F(input_shaper_runtime.damping, 4);
+      SERIAL_ECHOPGM(" SMOOTH=");
+      SERIAL_ECHO_F(input_shaper_runtime.smoothing, 4);
+      SERIAL_EOL();
+    #endif
 
     //
     // Motor Current (SPI or PWM)

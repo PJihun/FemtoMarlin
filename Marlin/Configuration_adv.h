@@ -4453,6 +4453,57 @@
 
 // @section develop
 
+/**
+ * Input Shaping
+ *
+ * Zero Vibration (ZV) input shaping for the FEMTO_BILAT motion axes.
+ * Tune and apply runtime values with M593.
+ */
+#if ENABLED(FEMTO_BILAT)
+      #define INPUT_SHAPING_X
+      #define INPUT_SHAPING_Y
+#endif
+
+#if ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y, INPUT_SHAPING_Z)
+      #if ENABLED(INPUT_SHAPING_X)
+            #define SHAPING_FREQ_X 40.0
+            #define SHAPING_ZETA_X 0.15
+      #endif
+      #if ENABLED(INPUT_SHAPING_Y)
+            #define SHAPING_FREQ_Y 40.0
+            #define SHAPING_ZETA_Y 0.15
+      #endif
+      #if ENABLED(INPUT_SHAPING_Z)
+            #define SHAPING_FREQ_Z 40.0
+            #define SHAPING_ZETA_Z 0.15
+      #endif
+      //#define SHAPING_MIN_FREQ 20.0
+      //#define SHAPING_MAX_STEPRATE 10000
+#endif
+
+/**
+ * Input shaper autotune command scaffold.
+ *
+ * The M970-M979 range currently exposes a stable command/response contract for
+ * ESP3D WebUI integration. Real IMU capture and solver logic will be added in
+ * subsequent phases.
+ */
+#define M970_M979_GCODE
+
+#if ENABLED(M970_M979_GCODE)
+      /**
+       * Optional ADXL345-over-SPI backend for M970-M979 capture calls.
+       *
+       * B1 on M970 requests hardware capture. If sensor init fails or CS pin is not
+       * valid, firmware reports IS_TUNE:ERROR and remains in simulation backend.
+       */
+      #define IS_TUNE_ADXL345_SPI_SUPPORT
+      #if ENABLED(IS_TUNE_ADXL345_SPI_SUPPORT)
+            #define IS_TUNE_ADXL345_CS_PIN -1
+            #define IS_TUNE_ADXL345_SPI_HZ 5000000UL
+      #endif
+#endif
+
 //
 // M100 Free Memory Watcher to debug memory usage
 //

@@ -895,6 +895,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
         case 554: M554(); break;                                  // M554: Set netmask
       #endif
 
+      #if HAS_ZV_SHAPING
+        case 593: M593(); break;                                  // M593: Get / Set Input Shaping
+      #endif
+
       #if ENABLED(BAUD_RATE_GCODE)
         case 575: M575(); break;                                  // M575: Set serial baudrate
       #endif
@@ -949,6 +953,19 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(LIN_ADVANCE)
         case 900: M900(); break;                                  // M900: Set advance K factor.
+      #endif
+
+      #if ENABLED(M970_M979_GCODE)
+        case 970: M970(); break;                                  // M970: Input shaper tune start
+        case 971: M971(); break;                                  // M971: Input shaper tune status
+        case 972: M972(); break;                                  // M972: Input shaper tune axis / mode
+        case 973: M973(); break;                                  // M973: Input shaper tune progress / sample hint
+        case 974: M974(); break;                                  // M974: Input shaper tune recommendation report
+        case 975: M975(); break;                                  // M975: Input shaper tune apply staged values
+        case 976: M976(); break;                                  // M976: Input shaper tune commit
+        case 977: M977(); break;                                  // M977: Input shaper tune abort
+        case 978: M978(); break;                                  // M978: Input shaper tune diagnostic
+        case 979: M979(); break;                                  // M979: Input shaper tune reset state
       #endif
 
       #if ANY(HAS_MOTOR_CURRENT_SPI, HAS_MOTOR_CURRENT_PWM, HAS_MOTOR_CURRENT_I2C, HAS_MOTOR_CURRENT_DAC)
