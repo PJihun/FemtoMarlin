@@ -1,136 +1,228 @@
-# Marlin 3D Printer Firmware
+## Firmware for FEMTO-Euclid 3D printer
+![Logo](image.png)
+Based on Marlin, ESP3DLib and ESP3D-WEBUI
+https://github.com/luc-github/Marlin/tree/ESP3D-V3-2.1.x
+https://github.com/luc-github/ESP3DLib/tree/3.0
+Please note that ESP3DLib was still in alpha at the moment
 
-![GitHub](https://img.shields.io/github/license/marlinfirmware/marlin.svg)
-![GitHub contributors](https://img.shields.io/github/contributors/marlinfirmware/marlin.svg)
-![GitHub Release Date](https://img.shields.io/github/release-date/marlinfirmware/marlin.svg)
-[![Build Status](https://github.com/MarlinFirmware/Marlin/workflows/CI/badge.svg?branch=bugfix-2.0.x)](https://github.com/MarlinFirmware/Marlin/actions)
+## Flashing to ESP32 (Firmware + ESP3D-WEBUI)
 
-<img align="right" width=175 src="buildroot/share/pixmaps/logo/marlin-250.png" />
+### 1) Flash the firmware from this repo
 
-Additional documentation can be found at the [Marlin Home Page](https://marlinfw.org/).
-Please test this firmware and let us know if it misbehaves in any way. Volunteers are standing by!
+1. Connect your ESP32 board by USB.
+2. Select the correct PlatformIO environment
+	- `mks_tinybee`
+3. Build and flash:
 
-## Marlin 2.0 Bugfix Branch
+```bash
+pio run -e mks_tinybee -t upload
+```
 
-__Not for production use. Use with caution!__
+If auto-detection fails, set your serial port in `ini/esp32.ini` (or pass `--upload-port <port>`).
 
-Marlin 2.0 takes this popular RepRap firmware to the next level by adding support for much faster 32-bit and ARM-based boards while improving support for 8-bit AVR boards. Read about Marlin's decision to use a "Hardware Abstraction Layer" below.
+### 2) Install / update ESP3D-WEBUI on the ESP32
 
-This branch is for patches to the latest 2.0.x release version. Periodically this branch will form the basis for the next minor 2.0.x release.
+This repository does not bundle ESP3D-WEBUI files directly for filesystem upload, so use the official ESP3D-WEBUI release package:
 
-Download earlier versions of Marlin on the [Releases page](https://github.com/MarlinFirmware/Marlin/releases).
+1. Download the latest package from: https://github.com/luc-github/ESP3D-WEBUI/releases
+2. Open the ESP3D web interface on your device (or use serial commands if you prefer).
+3. Use the ESP3D update page to upload the WEBUI package to the ESP32 filesystem.
+4. Reboot the board and refresh the browser.
 
-## Building Marlin 2.0
+### 3) Quick verify
 
-To build Marlin 2.0 you'll need [Arduino IDE 1.8.8 or newer](https://www.arduino.cc/en/main/software) or [PlatformIO](https://docs.platformio.org/en/latest/ide.html#platformio-ide). We've posted detailed instructions on [Building Marlin with Arduino](https://marlinfw.org/docs/basics/install_arduino.html) and [Building Marlin with PlatformIO for ReArm](https://marlinfw.org/docs/basics/install_rearm.html) (which applies well to other 32-bit boards).
+- Serial monitor works at `115200` baud.
+- ESP3D page loads from the board IP / hostname.
+- Printer controls and status update in the WEBUI.
 
-## Hardware Abstraction Layer (HAL)
+---
 
-Marlin 2.0 introduces a layer of abstraction so that all the existing high-level code can be built for 32-bit platforms while still retaining full 8-bit AVR compatibility. Retaining AVR compatibility and a single code-base is important to us, because we want to make sure that features and patches get as much testing and attention as possible, and that all platforms always benefit from the latest improvements.
+## FEMTO_BILAT Kinematics Configuration Guide
 
-### Current HALs
+This firmware includes a custom kinematics mode for FEMTO-Euclid:
 
-  #### AVR (8-bit)
+- 2D cable bilateration for XY (two cable lengths from anchors A/B)
+- independent linear Z axis (lead screw)
 
-  board|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Arduino AVR](https://www.arduino.cc/)|ATmega, ATTiny, etc.|16-20MHz|64-256k|2-16k|5V|no
+The math model is:
 
-  #### DUE
+- `r1 = sqrt((x - ax)^2 + (y - ay)^2)`
+- `r2 = sqrt((x - bx)^2 + (y - by)^2)`
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Arduino Due](https://www.arduino.cc/en/Guide/ArduinoDue), [RAMPS-FD](https://www.reprap.org/wiki/RAMPS-FD), etc.|[SAM3X8E ARM-Cortex M3](https://www.microchip.com/wwwproducts/en/ATsam3x8e)|84MHz|512k|64+32k|3.3V|no
+Where:
 
-  #### ESP32
+- `A = (ax, ay)` and `B = (bx, by)` are fixed anchor points
+- `P = (x, y)` is toolhead position
+- `r1`, `r2` are cable lengths to anchors A and B
 
-  board|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [ESP32](https://www.espressif.com/en/products/hardware/esp32/overview)|Tensilica Xtensa LX6|160-240MHz variants|---|---|3.3V|---
+### 1) Enable FEMTO_BILAT in Configuration.h
 
-  #### LPC1768 / LPC1769
+In `Marlin/Configuration.h`:
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Re-ARM](https://www.kickstarter.com/projects/1245051645/re-arm-for-ramps-simple-32-bit-upgrade)|[LPC1768 ARM-Cortex M3](https://www.nxp.com/products/microcontrollers-and-processors/arm-based-processors-and-mcus/lpc-cortex-m-mcus/lpc1700-cortex-m3/512kb-flash-64kb-sram-ethernet-usb-lqfp100-package:LPC1768FBD100)|100MHz|512k|32+16+16k|3.3-5V|no
-  [MKS SBASE](https://reprap.org/forum/read.php?13,499322)|LPC1768 ARM-Cortex M3|100MHz|512k|32+16+16k|3.3-5V|no
-  [Selena Compact](https://github.com/Ales2-k/Selena)|LPC1768 ARM-Cortex M3|100MHz|512k|32+16+16k|3.3-5V|no
-  [Azteeg X5 GT](https://www.panucatt.com/azteeg_X5_GT_reprap_3d_printer_controller_p/ax5gt.htm)|LPC1769 ARM-Cortex M3|120MHz|512k|32+16+16k|3.3-5V|no
-  [Smoothieboard](https://reprap.org/wiki/Smoothieboard)|LPC1769 ARM-Cortex M3|120MHz|512k|64k|3.3-5V|no
+1. Uncomment `#define FEMTO_BILAT`
+2. Set the FEMTO_BILAT parameters:
 
-  #### SAMD51
+```cpp
+//#define FEMTO_BILAT
+#if ENABLED(FEMTO_BILAT)
+	#define FEMTO_BILAT_ANCHOR_A_X 0.0f
+	#define FEMTO_BILAT_ANCHOR_A_Y 0.0f
+	#define FEMTO_BILAT_ANCHOR_B_X 220.0f
+	#define FEMTO_BILAT_ANCHOR_B_Y 0.0f
+	#define FEMTO_BILAT_SOLUTION_HIGH true
+	#define FEMTO_BILAT_SEGMENTS_PER_SECOND 5
+#endif
+```
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Adafruit Grand Central M4](https://www.adafruit.com/product/4064)|[SAMD51P20A ARM-Cortex M4](https://www.microchip.com/wwwproducts/en/ATSAMD51P20A)|120MHz|1M|256k|3.3V|yes
+### 2) Parameter meanings and how to determine them
 
-  #### STM32F1
+#### `FEMTO_BILAT_ANCHOR_A_X`, `FEMTO_BILAT_ANCHOR_A_Y`
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Arduino STM32](https://github.com/rogerclarkmelbourne/Arduino_STM32)|[STM32F1](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) ARM-Cortex M3|72MHz|256-512k|48-64k|3.3V|no
-  [Geeetech3D GTM32](https://github.com/Geeetech3D/Diagram/blob/master/Rostock301/Hardware_GTM32_PRO_VB.pdf)|[STM32F1](https://www.st.com/en/microcontrollers-microprocessors/stm32f103.html) ARM-Cortex M3|72MHz|256-512k|48-64k|3.3V|no
+Anchor A position in machine coordinates (mm).
 
-  #### STM32F4
+Recommended coordinate convention:
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [STEVAL-3DP001V1](https://www.st.com/en/evaluation-tools/steval-3dp001v1.html)|[STM32F401VE Arm-Cortex M4](https://www.st.com/en/microcontrollers-microprocessors/stm32f401ve.html)|84MHz|512k|64+32k|3.3-5V|yes
+- origin at lower-left of usable XY plane
+- +X to the right
+- +Y to the back (or whichever convention your machine uses consistently)
 
-  #### Teensy++ 2.0
+How to determine:
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Teensy++ 2.0](https://www.microchip.com/wwwproducts/en/AT90USB1286)|[AT90USB1286](https://www.microchip.com/wwwproducts/en/AT90USB1286)|16MHz|128k|8k|5V|no
+1. Choose your coordinate origin physically.
+2. Measure anchor A center position relative to origin.
+3. Use mm values in firmware.
 
-  #### Teensy 3.1 / 3.2
+#### `FEMTO_BILAT_ANCHOR_B_X`, `FEMTO_BILAT_ANCHOR_B_Y`
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Teensy 3.2](https://www.pjrc.com/store/teensy32.html)|[MK20DX256VLH7](https://www.mouser.com/ProductDetail/NXP-Freescale/MK20DX256VLH7) ARM-Cortex M4|72MHz|256k|32k|3.3V-5V|yes
+Anchor B position in machine coordinates (mm).
 
-  #### Teensy 3.5 / 3.6
+How to determine:
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Teensy 3.5](https://www.pjrc.com/store/teensy35.html)|[MK64FX512VMD12](https://www.mouser.com/ProductDetail/NXP-Freescale/MK64FX512VMD12) ARM-Cortex M4|120MHz|512k|192k|3.3-5V|yes
-  [Teensy 3.6](https://www.pjrc.com/store/teensy36.html)|[MK66FX1M0VMD18](https://www.mouser.com/ProductDetail/NXP-Freescale/MK66FX1M0VMD18) ARM-Cortex M4|180MHz|1M|256k|3.3V|yes
+1. Measure anchor B center relative to the same origin.
+2. Ensure A and B are not identical points.
+3. Prefer accurate center-to-center measurement (caliper/jig if possible).
 
-  #### Teensy 4.0 / 4.1
+#### `FEMTO_BILAT_SOLUTION_HIGH`
 
-  boards|processor|speed|flash|sram|logic|fpu
-  ----|---------|-----|-----|----|-----|---
-  [Teensy 4.0](https://www.pjrc.com/store/teensy40.html)|[IMXRT1062DVL6A](https://www.mouser.com/new/nxp-semiconductors/nxp-imx-rt1060-crossover-processor/) ARM-Cortex M7|600MHz|1M|2M|3.3V|yes
-  [Teensy 4.1](https://www.pjrc.com/store/teensy41.html)|[IMXRT1062DVJ6A](https://www.mouser.com/new/nxp-semiconductors/nxp-imx-rt1060-crossover-processor/) ARM-Cortex M7|600MHz|1M|2M|3.3V|yes
+Bilateral circle intersection has two geometric solutions. This flag selects which one to use.
 
-## Submitting Patches
+- `true`: one side of line AB
+- `false`: opposite side
 
-Proposed patches should be submitted as a Pull Request against the ([bugfix-2.0.x](https://github.com/MarlinFirmware/Marlin/tree/bugfix-2.0.x)) branch.
+How to determine:
 
-- This branch is for fixing bugs and integrating any new features for the duration of the Marlin 2.0.x life-cycle.
-- Follow the [Coding Standards](https://marlinfw.org/docs/development/coding_standards.html) to gain points with the maintainers.
-- Please submit Feature Requests and Bug Reports to the [Issue Queue](https://github.com/MarlinFirmware/Marlin/issues/new/choose). Support resources are also listed there.
-- Whenever you add new features, be sure to add tests to `buildroot/tests` and then run your tests locally, if possible.
-  - It's optional: Running all the tests on Windows might take a long time, and they will run anyway on GitHub.
-  - If you're running the tests on Linux (or on WSL with the code on a Linux volume) the speed is much faster.
-  - You can use `make tests-all-local` or `make tests-single-local TEST_TARGET=...`.
-  - If you prefer Docker you can use `make tests-all-local-docker` or `make tests-all-local-docker TEST_TARGET=...`.
+1. Keep anchors fixed.
+2. Move to a known XY point near center of workspace.
+3. If reported/actual location is mirrored across AB, flip this flag.
 
-### [RepRap.org Wiki Page](https://reprap.org/wiki/Marlin)
+#### `FEMTO_BILAT_SEGMENTS_PER_SECOND`
 
-## Credits
+Interpolation density for kinematic motion planning.
 
-The current Marlin dev team consists of:
+- Lower values: less CPU load, rougher path approximation
+- Higher values: smoother path, higher CPU usage
 
- - Scott Lahteine [[@thinkyhead](https://github.com/thinkyhead)] - USA &nbsp; [Donate](https://www.thinkyhead.com/donate-to-marlin) / Flattr: [![Flattr Scott](https://api.flattr.com/button/flattr-badge-small.png)](https://flattr.com/submit/auto?user_id=thinkyhead&url=https://github.com/MarlinFirmware/Marlin&title=Marlin&language=&tags=github&category=software)
- - Roxanne Neufeld [[@Roxy-3D](https://github.com/Roxy-3D)] - USA
- - Chris Pepper [[@p3p](https://github.com/p3p)] - UK
- - Bob Kuhn [[@Bob-the-Kuhn](https://github.com/Bob-the-Kuhn)] - USA
- - João Brazio [[@jbrazio](https://github.com/jbrazio)] - Portugal
- - Erik van der Zalm [[@ErikZalm](https://github.com/ErikZalm)] - Netherlands &nbsp; [![Flattr Erik](https://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=ErikZalm&url=https://github.com/MarlinFirmware/Marlin&title=Marlin&language=&tags=github&category=software)
+Starting point:
 
-## License
+- 5 (default) for first bring-up
+- increase gradually (e.g., 8, 10, 12) if motion quality requires it
 
-Marlin is published under the [GPL license](/LICENSE) because we believe in open development. The GPL comes with both rights and obligations. Whether you use Marlin firmware as the driver for your open or closed-source product, you must keep Marlin open, and you must provide your compatible Marlin source code to end users upon request. The most straightforward way to comply with the Marlin license is to make a fork of Marlin on Github, perform your modifications, and direct users to your modified fork.
+### 3) Set motor steps per mm for cable axes
 
-While we can't prevent the use of this code in products (3D printers, CNC, etc.) that are closed source or crippled by a patent, we would prefer that you choose another firmware or, better yet, make your own.
+Cable length is represented as axis movement, so cable spool calibration is critical.
+
+In `DEFAULT_AXIS_STEPS_PER_UNIT` (or with `M92`), X and Y should represent cable-length mm for motor 1 and motor 2.
+
+Use:
+
+- `steps_per_mm = (motor_steps_per_rev * microsteps * gear_ratio) / (2 * pi * R_eff)`
+
+Where:
+
+- `R_eff` is effective spool radius in mm
+- `gear_ratio` = output_rev / motor_rev (use 1.0 if direct)
+
+Practical advice:
+
+1. Start with geometric estimate from spool diameter.
+2. Command a known cable-length change.
+3. Measure actual cable movement and refine steps/mm.
+
+If spool radius changes significantly with layering, expect scale drift across long moves and plan a compensation model later.
+
+### 4) Runtime tuning with M665
+
+FEMTO_BILAT supports runtime updates:
+
+- `M665 S...` segments per second
+- `M665 A... B...` anchor A `(x, y)`
+- `M665 C... D...` anchor B `(x, y)`
+- `M665 I0|I1` solution side
+
+Examples:
+
+```gcode
+M665 A0.0 B0.0 C220.0 D0.0 I1 S5
+M665
+```
+
+Persist to EEPROM:
+
+```gcode
+M500
+```
+
+Restore from EEPROM:
+
+```gcode
+M501
+```
+
+### 5) Bring-up and calibration workflow
+
+Because this machine has no automatic XY homing, use a controlled startup sequence.
+
+1. Mechanically place toolhead at a known reference point.
+2. Set current coordinates (`G92 X... Y... Z...`) to match that known point.
+3. Verify small XY jogs move in the expected physical direction.
+4. Verify `M114` tracks position consistently.
+5. Check several points across workspace and refine:
+	 - anchor coordinates
+	 - X/Y cable steps per mm
+	 - solution side flag
+
+Suggested first validation pattern:
+
+- center → +X small move → back
+- center → +Y small move → back
+- small square path near center
+
+### 6) Homing sequence for all axes
+
+FEMTO_BILAT has no built-in XY homing routine, so home Z separately and set XY manually.
+
+Recommended sequence on power-up:
+
+1. Manually place the toolhead at a known XY reference point.
+2. Set XY with `G92 X... Y...` to match that reference.
+3. Home Z only: `G28 Z` (or `G28` if you have Z-only endstop/probe configured).
+
+If you do have reliable X/Y endstops (or a custom XY homing method), then a full `G28` is fine.
+
+### 7) Troubleshooting quick reference
+
+- Mirrored XY behavior: toggle `FEMTO_BILAT_SOLUTION_HIGH` (or `M665 I0/I1`)
+- Global scale error: adjust X/Y cable steps per mm
+- Position error increases away from center: re-measure anchor coordinates
+- Jagged curved motion: raise `FEMTO_BILAT_SEGMENTS_PER_SECOND` carefully
+
+### 8) Recommended first-pass defaults
+
+- conservative acceleration and feedrate during first bring-up
+- low jerk / junction aggressiveness
+- short moves only until geometry is confirmed
+
+After geometry and scaling are stable, tune speed and acceleration upward.
+
+
+

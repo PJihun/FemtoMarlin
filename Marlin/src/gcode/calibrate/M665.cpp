@@ -166,6 +166,47 @@
     SERIAL_ECHOLNPGM("  M665 S", segments_per_second);
   }
 
+#elif ENABLED(FEMTO_BILAT)
+
+  #include "../../module/femto_bilat.h"
+
+  /**
+   * M665: Set FEMTO bilateration settings
+   *
+   * Parameters:
+   *
+   *   S[segments-per-second] - Segments-per-second
+   *   A[anchor_a_x]          - Anchor A X coordinate
+   *   B[anchor_a_y]          - Anchor A Y coordinate
+   *   C[anchor_b_x]          - Anchor B X coordinate
+   *   D[anchor_b_y]          - Anchor B Y coordinate
+   *   I[0|1]                 - Bilateration solution side (0 low, 1 high)
+   */
+  void GcodeSuite::M665() {
+    if (!parser.seen_any()) return M665_report();
+
+    if (parser.seenval('S')) segments_per_second = parser.value_float();
+    if (parser.seenval('A')) femto_bilat_anchor_a.x = parser.value_linear_units();
+    if (parser.seenval('B')) femto_bilat_anchor_a.y = parser.value_linear_units();
+    if (parser.seenval('C')) femto_bilat_anchor_b.x = parser.value_linear_units();
+    if (parser.seenval('D')) femto_bilat_anchor_b.y = parser.value_linear_units();
+    if (parser.seenval('I')) femto_bilat_solution_high = parser.value_bool();
+
+    recalc_femto_bilat_settings();
+  }
+
+  void GcodeSuite::M665_report(const bool forReplay/*=true*/) {
+    report_heading_etc(forReplay, F("FEMTO_BILAT Settings (S A B C D I)"));
+    SERIAL_ECHOLNPGM(
+      "  M665 S", segments_per_second,
+      " A", LINEAR_UNIT(femto_bilat_anchor_a.x),
+      " B", LINEAR_UNIT(femto_bilat_anchor_a.y),
+      " C", LINEAR_UNIT(femto_bilat_anchor_b.x),
+      " D", LINEAR_UNIT(femto_bilat_anchor_b.y),
+      " I", int(femto_bilat_solution_high)
+    );
+  }
+
 #endif
 
 #endif // IS_KINEMATIC

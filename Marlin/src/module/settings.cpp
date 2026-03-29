@@ -36,7 +36,7 @@
  */
 
 // Change EEPROM version if the structure changes
-#define EEPROM_VERSION "V86"
+#define EEPROM_VERSION "V87"
 #define EEPROM_OFFSET 100
 
 // Check the integrity of data offsets.
@@ -330,6 +330,11 @@ typedef struct SettingsDataStruct {
       abc_float_t delta_tower_angle_trim,               // M665 X Y Z
                   delta_diagonal_rod_trim;              // M665 A B C
     #endif
+    #if ENABLED(FEMTO_BILAT)
+      xy_pos_t femto_bilat_anchor_a,
+               femto_bilat_anchor_b;                    // M665 A B C D
+      bool femto_bilat_solution_high;                   // M665 I
+    #endif
   #endif
 
   //
@@ -597,6 +602,7 @@ void MarlinSettings::postprocess() {
   // Make sure delta kinematics are updated before refreshing the
   // planner position so the stepper counts will be set correctly.
   TERN_(DELTA, recalc_delta_settings());
+  TERN_(FEMTO_BILAT, recalc_femto_bilat_settings());
 
   TERN_(PIDTEMP, thermalManager.updatePID());
 
@@ -1000,6 +1006,12 @@ void MarlinSettings::postprocess() {
         EEPROM_WRITE(delta_diagonal_rod);        // 1 float
         EEPROM_WRITE(delta_tower_angle_trim);    // 3 floats
         EEPROM_WRITE(delta_diagonal_rod_trim);   // 3 floats
+      #endif
+      #if ENABLED(FEMTO_BILAT)
+        _FIELD_TEST(femto_bilat_anchor_a);
+        EEPROM_WRITE(femto_bilat_anchor_a);
+        EEPROM_WRITE(femto_bilat_anchor_b);
+        EEPROM_WRITE(femto_bilat_solution_high);
       #endif
     }
     #endif
@@ -1954,6 +1966,12 @@ void MarlinSettings::postprocess() {
           EEPROM_READ(delta_diagonal_rod);        // 1 float
           EEPROM_READ(delta_tower_angle_trim);    // 3 floats
           EEPROM_READ(delta_diagonal_rod_trim);   // 3 floats
+        #endif
+        #if ENABLED(FEMTO_BILAT)
+          _FIELD_TEST(femto_bilat_anchor_a);
+          EEPROM_READ(femto_bilat_anchor_a);
+          EEPROM_READ(femto_bilat_anchor_b);
+          EEPROM_READ(femto_bilat_solution_high);
         #endif
       }
       #endif
@@ -3008,6 +3026,7 @@ void MarlinSettings::reset() {
       TERN_(DELTA, DELTA_SEGMENTS_PER_SECOND)
       TERN_(IS_SCARA, SCARA_SEGMENTS_PER_SECOND)
       TERN_(POLARGRAPH, POLAR_SEGMENTS_PER_SECOND)
+      TERN_(FEMTO_BILAT, FEMTO_BILAT_SEGMENTS_PER_SECOND)
     );
     #if ENABLED(DELTA)
       const abc_float_t adj = DELTA_ENDSTOP_ADJ, dta = DELTA_TOWER_ANGLE_TRIM, ddr = DELTA_DIAGONAL_ROD_TRIM_TOWER;
@@ -3017,6 +3036,11 @@ void MarlinSettings::reset() {
       delta_diagonal_rod = DELTA_DIAGONAL_ROD;
       delta_tower_angle_trim = dta;
       delta_diagonal_rod_trim = ddr;
+    #endif
+    #if ENABLED(FEMTO_BILAT)
+      femto_bilat_anchor_a.set(FEMTO_BILAT_ANCHOR_A_X, FEMTO_BILAT_ANCHOR_A_Y);
+      femto_bilat_anchor_b.set(FEMTO_BILAT_ANCHOR_B_X, FEMTO_BILAT_ANCHOR_B_Y);
+      femto_bilat_solution_high = FEMTO_BILAT_SOLUTION_HIGH;
     #endif
   #endif
 

@@ -50,6 +50,8 @@
   #include "delta.h"
 #elif ENABLED(POLARGRAPH)
   #include "polargraph.h"
+#elif ENABLED(FEMTO_BILAT)
+  #include "femto_bilat.h"
 #endif
 
 #if ABL_PLANAR

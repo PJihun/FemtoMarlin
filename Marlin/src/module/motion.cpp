@@ -360,6 +360,9 @@ void get_cartesian_from_steppers() {
       OPTARG(AXEL_TPARA, planner.get_axis_position_degrees(C_AXIS))
     );
     cartes.z = planner.get_axis_position_mm(Z_AXIS);
+  #elif ENABLED(FEMTO_BILAT)
+    forward_kinematics(planner.get_axis_position_mm(A_AXIS), planner.get_axis_position_mm(B_AXIS));
+    cartes.z = planner.get_axis_position_mm(Z_AXIS);
   #else
     NUM_AXIS_CODE(
       cartes.x = planner.get_axis_position_mm(X_AXIS),

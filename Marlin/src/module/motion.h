@@ -32,6 +32,8 @@
 
 #if IS_SCARA
   #include "scara.h"
+#elif ENABLED(FEMTO_BILAT)
+  #include "femto_bilat.h"
 #endif
 
 // Error margin to work around float imprecision
