@@ -64,6 +64,9 @@
 
 #include "planner.h"
 #include "stepper.h"
+#if ENABLED(FT_MOTION)
+  #include "ft_motion.h"
+#endif
 #include "motion.h"
 #include "temperature.h"
 #include "../lcd/marlinui.h"
@@ -775,6 +778,12 @@ void Planner::calculate_trapezoid_for_block(block_t * const block, const_float_t
 
   uint32_t initial_rate = CEIL(block->nominal_rate * entry_factor),
            final_rate = CEIL(block->nominal_rate * exit_factor); // (steps per second)
+
+  #if ENABLED(FT_MOTION)
+    const float entry_speed = SQRT(block->nominal_speed_sqr) * entry_factor;
+    if (entry_speed) block->entry_speed = entry_speed;
+    block->exit_speed = SQRT(block->nominal_speed_sqr) * exit_factor;
+  #endif
 
   // Limit minimal step rate (Otherwise the timer will overflow.)
   NOLESS(initial_rate, uint32_t(MINIMAL_STEP_RATE));
@@ -1671,7 +1680,7 @@ void Planner::quick_stop() {
 
   // Restart the block delay for the first movement - As the queue was
   // forced to empty, there's no risk the ISR will touch this.
-  delay_before_delivering = BLOCK_DELAY_FOR_1ST_MOVE;
+  delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
 
   #if HAS_WIRED_LCD
     // Clear the accumulated runtime
@@ -1825,7 +1834,7 @@ bool Planner::_buffer_steps(const xyze_long_t &target
     // As there are no queued movements, the Stepper ISR will not touch this
     // variable, so there is no risk setting this here (but it MUST be done
     // before the following line!!)
-    delay_before_delivering = BLOCK_DELAY_FOR_1ST_MOVE;
+    delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
   }
 
   // Move buffer head
@@ -1900,6 +1909,10 @@ bool Planner::_populate_block(block_t * const block, bool split_move,
       #endif
     );
   //*/
+
+  #if ENABLED(FT_MOTION)
+    block->dist_mm = cart_dist_mm;
+  #endif
 
   #if EITHER(PREVENT_COLD_EXTRUSION, PREVENT_LENGTHY_EXTRUDE)
     if (de) {
@@ -2952,7 +2965,7 @@ void Planner::buffer_sync_block(TERN_(LASER_SYNCHRONOUS_M106_M107, uint8_t sync_
     // As there are no queued movements, the Stepper ISR will not touch this
     // variable, so there is no risk setting this here (but it MUST be done
     // before the following line!!)
-    delay_before_delivering = BLOCK_DELAY_FOR_1ST_MOVE;
+    delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
   }
 
   block_buffer_head = next_buffer_head;
@@ -3195,7 +3208,7 @@ bool Planner::buffer_line(const xyze_pos_t &cart, const_feedRate_t fr_mm_s, cons
       // As there are no queued movements, the Stepper ISR will not touch this
       // variable, so there is no risk setting this here (but it MUST be done
       // before the following line!!)
-      delay_before_delivering = BLOCK_DELAY_FOR_1ST_MOVE;
+      delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
     }
 
     // Move buffer head

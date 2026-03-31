@@ -225,6 +225,12 @@ typedef struct block_t {
            final_rate,                      // The minimal rate at exit
            acceleration_steps_per_s2;       // acceleration steps/sec^2
 
+  #if ENABLED(FT_MOTION)
+    float entry_speed,                      // Block entry speed in steps units
+          exit_speed;                       // Block exit speed in steps units
+    xyze_pos_t dist_mm;                     // The distance traveled in mm along each axis internally for FT_MOTION
+  #endif
+
   #if ENABLED(DIRECT_STEPPING)
     page_idx_t page_idx;                    // Page index used for direct stepping
   #endif
@@ -878,6 +884,7 @@ class Planner {
     static bool busy() {
       return (has_blocks_queued() || cleaning_buffer_counter
           || TERN0(EXTERNAL_CLOSED_LOOP_CONTROLLER, CLOSED_LOOP_WAITING())
+          || TERN0(FT_MOTION, ftMotion.busy)
       );
     }
 

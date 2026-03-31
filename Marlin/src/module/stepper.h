@@ -706,6 +706,11 @@ class Stepper {
     // The stepper block processing ISR phase
     static uint32_t block_phase_isr();
 
+    #if ENABLED(FT_MOTION)
+      static void ftMotion_syncPosition();
+      static void ftMotion_stepper();
+    #endif
+
     #if HAS_ZV_SHAPING
       static void shaping_isr();
     #endif

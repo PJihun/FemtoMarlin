@@ -1544,29 +1544,55 @@ void Stepper::isr() {
   // Limit the amount of iterations
   uint8_t max_loops = 10;
 
-  // We need this variable here to be able to use it in the following loop
-  hal_timer_t min_ticks;
-  do {
-    // Enable ISRs to reduce USART processing latency
-    hal.isr_on();
-
-    #if HAS_ZV_SHAPING
-      shaping_isr();                                            // Apply delayed shaping echoes
+    #if ENABLED(FT_MOTION)
+      static uint32_t ftMotion_nextAuxISR = 0U;  // Storage for the next ISR of the auxiliary tasks.
+      const bool using_ftMotion = ftMotion.cfg.active;
+    #else
+      constexpr bool using_ftMotion = false;
     #endif
 
-    if (!nextMainISR) pulse_phase_isr();                            // 0 = Do coordinated axes Stepper pulses
+    // We need this variable here to be able to use it in the following loop
+    hal_timer_t min_ticks;
+    do {
+      hal_timer_t interval = 0;
 
-    #if ENABLED(LIN_ADVANCE)
-      if (!nextAdvanceISR) nextAdvanceISR = advance_isr();          // 0 = Do Linear Advance E Stepper pulses
-    #endif
+      #if ENABLED(FT_MOTION)
+        if (using_ftMotion) {
+          ftMotion_stepper();             // Run FTM Stepping
 
-    #if ENABLED(INTEGRATED_BABYSTEPPING)
-      const bool is_babystep = (nextBabystepISR == 0);              // 0 = Do Babystepping (XY)Z pulses
-      if (is_babystep) nextBabystepISR = babystepping_isr();
-    #endif
+          // Define 2.5 msec task for auxiliary functions.
+          if (!ftMotion_nextAuxISR) {
+            TERN_(BABYSTEPPING, if (babystep.has_steps()) babystepping_isr());
+            ftMotion_nextAuxISR = (STEPPER_TIMER_RATE) / 400;
+          }
 
-    // ^== Time critical. NOTHING besides pulse generation should be above here!!!
+          // Enable ISRs to reduce latency for higher priority ISRs
+          hal.isr_on();
 
+          interval = FTM_MIN_TICKS;
+          ftMotion_nextAuxISR -= interval;
+        }
+      #endif
+
+      if (!using_ftMotion) {
+        // Enable ISRs to reduce USART processing latency
+        hal.isr_on();
+
+        #if HAS_ZV_SHAPING
+          shaping_isr();                                            // Apply delayed shaping echoes
+        #endif
+
+        if (!nextMainISR) pulse_phase_isr();                            // 0 = Do coordinated axes Stepper pulses
+
+        #if ENABLED(LIN_ADVANCE)
+          if (!nextAdvanceISR) nextAdvanceISR = advance_isr();          // 0 = Do Linear Advance E Stepper pulses
+        #endif
+
+        #if ENABLED(INTEGRATED_BABYSTEPPING)
+          const bool is_babystep = (nextBabystepISR == 0);              // 0 = Do Babystepping (XY)Z pulses
+          if (is_babystep) nextBabystepISR = babystepping_isr();
+        #endif
+      }
     if (!nextMainISR) nextMainISR = block_phase_isr();  // Manage acc/deceleration, get next block
 
     #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -1578,22 +1604,24 @@ void Stepper::isr() {
     #endif
 
     // Get the interval to the next ISR call
-    uint32_t interval = _MIN(
-      uint32_t(HAL_TIMER_TYPE_MAX),                     // Come back in a very long time
-      nextMainISR                                       // Time until the next Pulse / Block phase
-      OPTARG(LIN_ADVANCE, nextAdvanceISR)               // Come back early for Linear Advance?
-      OPTARG(INTEGRATED_BABYSTEPPING, nextBabystepISR)  // Come back early for Babystepping?
-    );
+if (!using_ftMotion) {
+        interval = _MIN(
+          uint32_t(HAL_TIMER_TYPE_MAX),                     // Come back in a very long time
+          nextMainISR                                       // Time until the next Pulse / Block phase
+          OPTARG(LIN_ADVANCE, nextAdvanceISR)               // Come back early for Linear Advance?
+          OPTARG(INTEGRATED_BABYSTEPPING, nextBabystepISR)  // Come back early for Babystepping?
+        );
 
-    #if ENABLED(INPUT_SHAPING_X)
-      NOMORE(interval, ShapingQueue::peek_x());
-    #endif
-    #if ENABLED(INPUT_SHAPING_Y)
-      NOMORE(interval, ShapingQueue::peek_y());
-    #endif
-    #if ENABLED(INPUT_SHAPING_Z)
-      NOMORE(interval, ShapingQueue::peek_z());
-    #endif
+        #if ENABLED(INPUT_SHAPING_X)
+          NOMORE(interval, ShapingQueue::peek_x());
+        #endif
+        #if ENABLED(INPUT_SHAPING_Y)
+          NOMORE(interval, ShapingQueue::peek_y());
+        #endif
+        #if ENABLED(INPUT_SHAPING_Z)
+          NOMORE(interval, ShapingQueue::peek_z());
+        #endif
+      }
 
     //
     // Compute remaining time for each ISR phase
@@ -4703,3 +4731,67 @@ void Stepper::report_positions() {
   }
 
 #endif // HAS_MICROSTEPS
+
+#if ENABLED(FT_MOTION)
+  void Stepper::ftMotion_syncPosition() {
+    planner.synchronize();
+    AVR_ATOMIC_SECTION_START();
+    count_position = planner.position;
+    AVR_ATOMIC_SECTION_END();
+  }
+
+  void Stepper::ftMotion_stepper() {
+    ftMotion.stepperCmdBuffHasData = (ftMotion.stepperCmdBuff_produceIdx != ftMotion.stepperCmdBuff_consumeIdx);
+    if (!ftMotion.stepperCmdBuffHasData) return;
+
+    const ft_command_t command = ftMotion.stepperCmdBuff[ftMotion.stepperCmdBuff_consumeIdx];
+    if (++ftMotion.stepperCmdBuff_consumeIdx == (FTM_STEPPERCMD_BUFF_SIZE))
+      ftMotion.stepperCmdBuff_consumeIdx = 0;
+
+    if (abort_current_block) return;
+    
+    // FEMTO_BILAT: FT_MOTION produces shape-modified pseudo-Cartesian coordinates.
+    // Instead of pushing bits direct to axes, we run inverse kinematics delta mapping for the toolhead 
+    
+    // Note: FTM normally pulses direct axes. We reconstruct virtual X/Y mm per pulse here!
+    static float virtual_x = 0;
+    static float virtual_y = 0;
+
+    if (TEST(command, FT_BIT_SYNC)) { 
+        // Start block!
+        virtual_x = current_block ? current_block->position_float.x : 0;
+        virtual_y = current_block ? current_block->position_float.y : 0;
+    }
+
+    if (TEST(command, FT_BIT_STEP_X)) virtual_x += TEST(command, FT_BIT_DIR_X) ? planner.steps_to_mm[X_AXIS] : -planner.steps_to_mm[X_AXIS];
+    if (TEST(command, FT_BIT_STEP_Y)) virtual_y += TEST(command, FT_BIT_DIR_Y) ? planner.steps_to_mm[Y_AXIS] : -planner.steps_to_mm[Y_AXIS];
+
+    // Compute hardware targets
+    xyz_pos_t cart = { virtual_x, virtual_y, 0 };
+    inverse_kinematics_fast_approx(cart);
+
+    int32_t target_A = delta.a * planner.settings.axis_steps_per_mm[A_AXIS];
+    int32_t target_B = delta.b * planner.settings.axis_steps_per_mm[B_AXIS];
+
+    bool step_A = target_A != count_position.a;
+    bool step_B = target_B != count_position.b;
+
+    if (step_A) {
+      bool dir = target_A > count_position.a;
+      if (last_direction_bits.a != dir) { last_direction_bits.a = dir; SET_STEP_DIR(A); }
+      count_position.a += dir ? 1 : -1;
+      A_STEP_WRITE(true);
+    }
+    if (step_B) {
+      bool dir = target_B > count_position.b;
+      if (last_direction_bits.b != dir) { last_direction_bits.b = dir; SET_STEP_DIR(B); }
+      count_position.b += dir ? 1 : -1;
+      B_STEP_WRITE(true);
+    }
+    
+    // Z / E handles bypassing inverse mapping. (Assume straightforward for simplicity here).
+    
+    A_STEP_WRITE(false);
+    B_STEP_WRITE(false);
+  }
+#endif

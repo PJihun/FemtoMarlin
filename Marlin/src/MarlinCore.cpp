@@ -49,6 +49,9 @@
 #include "module/printcounter.h" // PrintCounter or Stopwatch
 
 #include "module/stepper.h"
+#if ENABLED(FT_MOTION)
+  #include "module/ft_motion.h"
+#endif
 #include "module/stepper/indirection.h"
 
 #include "gcode/gcode.h"
@@ -832,6 +835,8 @@ void idle(bool no_stepper_sleep/*=false*/) {
 
   // Update the Beeper queue
   TERN_(HAS_BEEPER, buzzer.tick());
+
+  TERN_(FT_MOTION, ftMotion.loop());
 
   // Handle UI input / draw events
   TERN(DWIN_CREALITY_LCD, DWIN_Update(), ui.update());
