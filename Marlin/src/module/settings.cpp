@@ -110,10 +110,6 @@
   #include "../feature/backlash.h"
 #endif
 
-#if ENABLED(M970_M979_GCODE)
-  #include "input_shaper_runtime.h"
-#endif
-
 #if HAS_FILAMENT_SENSOR
   #include "../feature/runout.h"
   #ifndef FIL_RUNOUT_ENABLED_DEFAULT
@@ -338,14 +334,6 @@ typedef struct SettingsDataStruct {
       xy_pos_t femto_bilat_anchor_a,
                femto_bilat_anchor_b;                    // M665 A B C D
       bool femto_bilat_solution_high;                   // M665 I
-    #endif
-    #if ENABLED(M970_M979_GCODE)
-      bool input_shaper_runtime_enabled;
-      uint8_t input_shaper_runtime_axis_mask;
-      float input_shaper_runtime_x_hz,
-            input_shaper_runtime_y_hz,
-            input_shaper_runtime_damping,
-            input_shaper_runtime_smoothing;
     #endif
   #endif
 
@@ -607,29 +595,6 @@ uint16_t MarlinSettings::datasize() { return sizeof(SettingsData); }
 
 void MarlinSettings::postprocess() {
   xyze_pos_t oldpos = current_position;
-
-  #if BOTH(HAS_ZV_SHAPING, M970_M979_GCODE)
-    // Keep ISR shaping state consistent with the persisted runtime profile.
-    const float runtime_damping = input_shaper_runtime.damping;
-    #if ENABLED(INPUT_SHAPING_X)
-      stepper.set_shaping_damping_ratio(X_AXIS, runtime_damping);
-      stepper.set_shaping_frequency(
-        X_AXIS,
-        input_shaper_runtime.enabled && TEST(input_shaper_runtime.axis_mask, 0)
-          ? input_shaper_runtime.x_hz
-          : 0.0f
-      );
-    #endif
-    #if ENABLED(INPUT_SHAPING_Y)
-      stepper.set_shaping_damping_ratio(Y_AXIS, runtime_damping);
-      stepper.set_shaping_frequency(
-        Y_AXIS,
-        input_shaper_runtime.enabled && TEST(input_shaper_runtime.axis_mask, 1)
-          ? input_shaper_runtime.y_hz
-          : 0.0f
-      );
-    #endif
-  #endif
 
   // steps per s2 needs to be updated to agree with units per s2
   planner.reset_acceleration_rates();
