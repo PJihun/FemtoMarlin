@@ -3083,7 +3083,7 @@ void MarlinSettings::reset() {
     #endif
   #endif
 
-  TERN_(M970_M979_GCODE, input_shaper_runtime_reset());
+  
 
   //
   // Endstop Adjustments

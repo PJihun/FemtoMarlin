@@ -97,15 +97,8 @@ uint32_t FTMotion::interpIdx = 0;               // Index of current data point b
 
 // Shaping variables.
 #if HAS_FTM_SHAPING
-  FTMotion::shaping_t FTMotion::shaping = {
-    zi_idx: 0
-    #if HAS_X_AXIS
-      , x:{ false, { 0.0f }, { 0.0f }, { 0 }, 0 } // ena, d_zi[], Ai[], Ni[], max_i
-    #endif
-    #if HAS_Y_AXIS
-      , y:{ false, { 0.0f }, { 0.0f }, { 0 }, 0 } // ena, d_zi[], Ai[], Ni[], max_i
-    #endif
-  };
+  FTMotion::shaping_t FTMotion::shaping;
+
 #endif
 
 #if HAS_EXTRUDERS
@@ -142,8 +135,8 @@ void FTMotion::loop() {
   }
 
   while (!blockProcRdy && (stepper.current_block = planner.get_current_block())) {
-    if (stepper.current_block->is_sync()) {     // Sync block?
-      if (stepper.current_block->is_sync_pos()) // Position sync? Set the position.
+    if (stepper.current_block->flag & BLOCK_MASK_SYNC) {     // Sync block?
+      if (TEST(stepper.current_block->flag, BLOCK_BIT_SYNC_POSITION)) // Position sync? Set the position.
         stepper._set_position(stepper.current_block->position);
       discard_planner_block_protected();
       continue;
@@ -192,11 +185,33 @@ void FTMotion::loop() {
     #else
       // Copy the uncompensated vectors.
       #define TCOPY(A) memcpy(trajMod.A, traj.A, sizeof(trajMod.A));
-      LOGICAL_AXIS_MAP_LC(TCOPY);
+      #if HAS_X_AXIS
+        TCOPY(x);
+      #endif
+      #if HAS_Y_AXIS
+        TCOPY(y);
+      #endif
+      #if HAS_Z_AXIS
+        TCOPY(z);
+      #endif
+      #if HAS_EXTRUDERS
+        TCOPY(e);
+      #endif
 
       // Shift the time series back in the window
       #define TSHIFT(A) memcpy(traj.A, &traj.A[FTM_BATCH_SIZE], BATCH_SIDX_IN_WINDOW * sizeof(traj.A[0]));
-      LOGICAL_AXIS_MAP_LC(TSHIFT);
+      #if HAS_X_AXIS
+        TSHIFT(x);
+      #endif
+      #if HAS_Y_AXIS
+        TSHIFT(y);
+      #endif
+      #if HAS_Z_AXIS
+        TSHIFT(z);
+      #endif
+      #if HAS_EXTRUDERS
+        TSHIFT(e);
+      #endif
     #endif
 
     // ... data is ready in trajMod.
@@ -480,7 +495,7 @@ void FTMotion::loadBlockData(block_t * const current_block) {
   const float fsSqByTwoA = sq(f_s) * oneby2a,           // (mm) Distance to accelerate from start speed to nominal speed
               feSqByTwoD = sq(f_e) * oneby2d;           // (mm) Distance to decelerate from nominal speed to end speed
 
-  float F_n = current_block->nominal_speed;             // (mm/s) Speed we hope to achieve, if possible
+  float F_n = SQRT(current_block->nominal_speed_sqr);             // (mm/s) Speed we hope to achieve, if possible
   const float fdiff = feSqByTwoD - fsSqByTwoA,          // (mm) Coasting distance if nominal speed is reached
               odiff = oneby2a - oneby2d,                // (i.e., oneby2a * 2) (mm/s) Change in speed for one second of acceleration
               ldiff = totalLength - fdiff;              // (mm) Distance to travel if nominal speed is reached
@@ -498,7 +513,7 @@ void FTMotion::loadBlockData(block_t * const current_block) {
   const float accel = current_block->acceleration,
               oneOverAccel = 1.0f / accel;
 
-  float F_n = current_block->nominal_speed;
+  float F_n = SQRT(current_block->nominal_speed_sqr);
   const float ldiff = totalLength + 0.5f * oneOverAccel * (sq(f_s) + sq(f_e));
 
   float T2 = ldiff / F_n - oneOverAccel * F_n;
@@ -558,7 +573,18 @@ void FTMotion::loadBlockData(block_t * const current_block) {
     } \
   }while(0);
 
-  LOGICAL_AXIS_MAP(_SET_MOVE_END);
+  #if HAS_X_AXIS
+    _SET_MOVE_END(x);
+  #endif
+  #if HAS_Y_AXIS
+    _SET_MOVE_END(y);
+  #endif
+  #if HAS_Z_AXIS
+    _SET_MOVE_END(z);
+  #endif
+  #if HAS_EXTRUDERS
+    _SET_MOVE_END(e);
+  #endif
 }
 
 // Generate data points of the trajectory.
@@ -588,7 +614,18 @@ void FTMotion::generateTrajectoryPointsFromBlock() {
     }
 
     #define _SET_TRAJ(q) traj.q[traj_idx_set] = startPos.q + ratio.q * dist;
-    LOGICAL_AXIS_MAP_LC(_SET_TRAJ);
+    #if HAS_X_AXIS
+      _SET_TRAJ(x);
+    #endif
+    #if HAS_Y_AXIS
+      _SET_TRAJ(y);
+    #endif
+    #if HAS_Z_AXIS
+      _SET_TRAJ(z);
+    #endif
+    #if HAS_EXTRUDERS
+      _SET_TRAJ(e);
+    #endif
 
     #if HAS_EXTRUDERS
       if (cfg.linearAdvEna) {
@@ -735,7 +772,18 @@ void FTMotion::generateStepsFromTrajectory(const uint32_t idx) {
     step_error_q10 += delta_q10;
 
     // Where the error has accumulated whole axis steps, add them to the command
-    LOGICAL_AXIS_MAP(RUN_AXIS);
+    #if HAS_X_AXIS
+      RUN_AXIS(x);
+    #endif
+    #if HAS_Y_AXIS
+      RUN_AXIS(y);
+    #endif
+    #if HAS_Z_AXIS
+      RUN_AXIS(z);
+    #endif
+    #if HAS_EXTRUDERS
+      RUN_AXIS(e);
+    #endif
 
     // Next circular buffer index
     if (++stepperCmdBuff_produceIdx == (FTM_STEPPERCMD_BUFF_SIZE))

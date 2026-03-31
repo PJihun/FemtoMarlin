@@ -55,6 +55,7 @@ void inverse_kinematics(const xyz_pos_t &raw) {
   delta.set(HYPOT(dax, day), HYPOT(dbx, dby), raw.z);
 }
 
+
 void forward_kinematics(const_float_t len_a, const_float_t len_b) {
   if (anchor_dist <= 0.0f) {
     cartes.x = femto_bilat_anchor_a.x;

@@ -1680,7 +1680,7 @@ void Planner::quick_stop() {
 
   // Restart the block delay for the first movement - As the queue was
   // forced to empty, there's no risk the ISR will touch this.
-  delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
+  delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? 0 : BLOCK_DELAY_FOR_1ST_MOVE;
 
   #if HAS_WIRED_LCD
     // Clear the accumulated runtime
@@ -1834,7 +1834,7 @@ bool Planner::_buffer_steps(const xyze_long_t &target
     // As there are no queued movements, the Stepper ISR will not touch this
     // variable, so there is no risk setting this here (but it MUST be done
     // before the following line!!)
-    delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
+    delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? 0 : BLOCK_DELAY_FOR_1ST_MOVE;
   }
 
   // Move buffer head
@@ -2965,7 +2965,7 @@ void Planner::buffer_sync_block(TERN_(LASER_SYNCHRONOUS_M106_M107, uint8_t sync_
     // As there are no queued movements, the Stepper ISR will not touch this
     // variable, so there is no risk setting this here (but it MUST be done
     // before the following line!!)
-    delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
+    delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? 0 : BLOCK_DELAY_FOR_1ST_MOVE;
   }
 
   block_buffer_head = next_buffer_head;
@@ -3208,7 +3208,7 @@ bool Planner::buffer_line(const xyze_pos_t &cart, const_feedRate_t fr_mm_s, cons
       // As there are no queued movements, the Stepper ISR will not touch this
       // variable, so there is no risk setting this here (but it MUST be done
       // before the following line!!)
-      delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? BLOCK_DELAY_NONE : BLOCK_DELAY_FOR_1ST_MOVE;
+      delay_before_delivering = TERN0(FT_MOTION, ftMotion.cfg.active) ? 0 : BLOCK_DELAY_FOR_1ST_MOVE;
     }
 
     // Move buffer head

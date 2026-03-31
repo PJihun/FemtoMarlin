@@ -90,7 +90,7 @@
                                                      _mf.u / 60.0f, _mf.v / 60.0f, _mf.w / 60.0f);
 #endif
 
-#if IS_KINEMATIC && HAS_JUNCTION_DEVIATION
+#if (IS_KINEMATIC && HAS_JUNCTION_DEVIATION) || ENABLED(FT_MOTION)
   #define HAS_DIST_MM_ARG 1
 #endif
 
@@ -881,12 +881,7 @@ class Planner {
     static float triggered_position_mm(const AxisEnum axis);
 
     // Blocks are queued, or we're running out moves, or the closed loop controller is waiting
-    static bool busy() {
-      return (has_blocks_queued() || cleaning_buffer_counter
-          || TERN0(EXTERNAL_CLOSED_LOOP_CONTROLLER, CLOSED_LOOP_WAITING())
-          || TERN0(FT_MOTION, ftMotion.busy)
-      );
-    }
+    static bool busy();
 
     // Block until all buffered steps are executed / cleaned
     static void synchronize();

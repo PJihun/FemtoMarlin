@@ -90,9 +90,8 @@ Stepper stepper; // Singleton
 #include "endstops.h"
 #include "planner.h"
 #include "motion.h"
-
-#if ENABLED(M970_M979_GCODE) || HAS_ZV_SHAPING
-  #include "input_shaper_runtime.h"
+#if ENABLED(FT_MOTION)
+  #include "ft_motion.h"
 #endif
 
 #include "../lcd/marlinui.h"
@@ -1569,7 +1568,7 @@ void Stepper::isr() {
           // Enable ISRs to reduce latency for higher priority ISRs
           hal.isr_on();
 
-          interval = FTM_MIN_TICKS;
+          interval = ((STEPPER_TIMER_RATE) / (FTM_STEPPER_FS));
           ftMotion_nextAuxISR -= interval;
         }
       #endif
@@ -2865,7 +2864,7 @@ uint32_t Stepper::block_phase_isr() {
 
     if (was_on) hal.isr_on();
 
-    #if ENABLED(M970_M979_GCODE)
+    #if 0 // ENABLED(M970_M979_GCODE)
       if (changed) {
         uint8_t axis_mask = 0;
         float x_hz = 0.0f, y_hz = 0.0f;
@@ -2882,13 +2881,7 @@ uint32_t Stepper::block_phase_isr() {
           }
         #endif
 
-        input_shaper_runtime_apply(
-          axis_mask,
-          x_hz,
-          y_hz,
-          zeta,
-          input_shaper_runtime.smoothing
-        );
+      // shaper_apply removed for ft_motion
       }
     #endif
 
@@ -2915,7 +2908,7 @@ uint32_t Stepper::block_phase_isr() {
     // Enabling/disabling shaping while moving can lose steps.
     if (is_awake()) planner.synchronize();
 
-    #if ENABLED(M970_M979_GCODE)
+    #if 0 // ENABLED(M970_M979_GCODE)
       float x_hz = 0.0f, y_hz = 0.0f;
       uint8_t axis_mask = 0;
       #if ENABLED(INPUT_SHAPING_X)
@@ -2942,13 +2935,7 @@ uint32_t Stepper::block_phase_isr() {
         else axis_mask &= ~0x02;
       }
 
-      input_shaper_runtime_apply(
-        axis_mask,
-        x_hz,
-        y_hz,
-        input_shaper_runtime.damping,
-        input_shaper_runtime.smoothing
-      );
+      // shaper_apply removed for ft_motion
     #endif
 
     bool changed = false;
@@ -2957,7 +2944,7 @@ uint32_t Stepper::block_phase_isr() {
 
     #if ENABLED(INPUT_SHAPING_X)
       if (axis == X_AXIS) {
-        #if ENABLED(M970_M979_GCODE)
+        #if 0 // ENABLED(M970_M979_GCODE)
           const bool enabled = input_shaper_runtime.enabled && TEST(input_shaper_runtime.axis_mask, 0) && input_shaper_runtime.x_hz > 0.0f;
           const float target_freq = enabled ? input_shaper_runtime.x_hz : 0.0f;
         #else
@@ -2977,7 +2964,7 @@ uint32_t Stepper::block_phase_isr() {
 
     #if ENABLED(INPUT_SHAPING_Y)
       if (axis == Y_AXIS) {
-        #if ENABLED(M970_M979_GCODE)
+        #if 0 // ENABLED(M970_M979_GCODE)
           const bool enabled = input_shaper_runtime.enabled && TEST(input_shaper_runtime.axis_mask, 1) && input_shaper_runtime.y_hz > 0.0f;
           const float target_freq = enabled ? input_shaper_runtime.y_hz : 0.0f;
         #else
@@ -4735,9 +4722,9 @@ void Stepper::report_positions() {
 #if ENABLED(FT_MOTION)
   void Stepper::ftMotion_syncPosition() {
     planner.synchronize();
-    AVR_ATOMIC_SECTION_START();
+    hal.isr_off();
     count_position = planner.position;
-    AVR_ATOMIC_SECTION_END();
+    hal.isr_on();
   }
 
   void Stepper::ftMotion_stepper() {
@@ -4759,16 +4746,16 @@ void Stepper::report_positions() {
 
     if (TEST(command, FT_BIT_SYNC)) { 
         // Start block!
-        virtual_x = current_block ? current_block->position_float.x : 0;
-        virtual_y = current_block ? current_block->position_float.y : 0;
+        virtual_x = current_block ? ftMotion.startPos.x : 0;
+        virtual_y = current_block ? ftMotion.startPos.y : 0;
     }
 
-    if (TEST(command, FT_BIT_STEP_X)) virtual_x += TEST(command, FT_BIT_DIR_X) ? planner.steps_to_mm[X_AXIS] : -planner.steps_to_mm[X_AXIS];
-    if (TEST(command, FT_BIT_STEP_Y)) virtual_y += TEST(command, FT_BIT_DIR_Y) ? planner.steps_to_mm[Y_AXIS] : -planner.steps_to_mm[Y_AXIS];
+    if (TEST(command, FT_BIT_STEP_X)) virtual_x += TEST(command, FT_BIT_DIR_X) ? planner.mm_per_step[X_AXIS] : -planner.mm_per_step[X_AXIS];
+    if (TEST(command, FT_BIT_STEP_Y)) virtual_y += TEST(command, FT_BIT_DIR_Y) ? planner.mm_per_step[Y_AXIS] : -planner.mm_per_step[Y_AXIS];
 
     // Compute hardware targets
     xyz_pos_t cart = { virtual_x, virtual_y, 0 };
-    inverse_kinematics_fast_approx(cart);
+    inverse_kinematics(cart);
 
     int32_t target_A = delta.a * planner.settings.axis_steps_per_mm[A_AXIS];
     int32_t target_B = delta.b * planner.settings.axis_steps_per_mm[B_AXIS];
@@ -4778,20 +4765,20 @@ void Stepper::report_positions() {
 
     if (step_A) {
       bool dir = target_A > count_position.a;
-      if (last_direction_bits.a != dir) { last_direction_bits.a = dir; SET_STEP_DIR(A); }
+      if (TEST(last_direction_bits, X_AXIS) != dir) { if (dir) SBI(last_direction_bits, X_AXIS); else CBI(last_direction_bits, X_AXIS); SET_STEP_DIR(X); }
       count_position.a += dir ? 1 : -1;
-      A_STEP_WRITE(true);
+      X_STEP_WRITE(true);
     }
     if (step_B) {
       bool dir = target_B > count_position.b;
-      if (last_direction_bits.b != dir) { last_direction_bits.b = dir; SET_STEP_DIR(B); }
+      if (TEST(last_direction_bits, Y_AXIS) != dir) { if (dir) SBI(last_direction_bits, Y_AXIS); else CBI(last_direction_bits, Y_AXIS); SET_STEP_DIR(Y); }
       count_position.b += dir ? 1 : -1;
-      B_STEP_WRITE(true);
+      Y_STEP_WRITE(true);
     }
     
     // Z / E handles bypassing inverse mapping. (Assume straightforward for simplicity here).
     
-    A_STEP_WRITE(false);
-    B_STEP_WRITE(false);
+    X_STEP_WRITE(false);
+    Y_STEP_WRITE(false);
   }
 #endif

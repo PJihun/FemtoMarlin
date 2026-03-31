@@ -21,7 +21,7 @@
  */
 #pragma once
 
-#include "../inc/MarlinConfigPre.h" // Access the top level configurations.
+#include "../inc/MarlinConfig.h" // Access the top level configurations.
 #include "../module/planner.h"      // Access block type from planner.
 #include "../module/stepper.h"      // For stepper motion and direction
 
@@ -133,7 +133,7 @@ class FTMotion {
       return cfg.active ? PENDING(millis(), axis_move_end_ti[axis]) : stepper.axis_is_moving(axis);
     }
     FORCE_INLINE static bool motor_direction(const AxisEnum axis) {
-      return cfg.active ? axis_move_dir[axis] : stepper.last_direction_bits[axis];
+      return cfg.active ? axis_move_dir[axis] : stepper.motor_direction(axis);
     }
 
   private:
@@ -145,6 +145,8 @@ class FTMotion {
     static bool batchRdy, batchRdyForInterp;
 
     // Trapezoid data variables.
+    // Private vars below
+  public:
     static xyze_pos_t   startPos,         // (mm) Start position of block
                         endPos_prevBlock; // (mm) End position of previous block
     static xyze_float_t ratio;            // (ratio) Axis move ratio of block
@@ -218,7 +220,7 @@ class FTMotion {
     static void generateTrajectoryPointsFromBlock();
     static void generateStepsFromTrajectory(const uint32_t idx);
 
-    FORCE_INLINE static int32_t num_samples_shaper_settle() { return ( shaping.x.ena || shaping.y.ena ) ? FTM_ZMAX : 0; }
+    FORCE_INLINE static int32_t num_samples_shaper_settle() { return TERN0(HAS_FTM_SHAPING, ( shaping.x.ena || shaping.y.ena ) ? FTM_ZMAX : 0); }
 
 }; // class FTMotion
 

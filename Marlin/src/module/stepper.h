@@ -519,9 +519,13 @@ constexpr ena_mask_t enable_overlap[] = {
 //
 // Stepper class definition
 //
+
+class FTMotion;
+
 class Stepper {
 
   public:
+    friend class FTMotion;
 
     #if EITHER(HAS_EXTRA_ENDSTOPS, Z_STEPPER_AUTO_ALIGN)
       static bool separate_multi_axis;

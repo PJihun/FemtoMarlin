@@ -3761,3 +3761,33 @@
     FIL_RUNOUT5_PULLDOWN, FIL_RUNOUT6_PULLDOWN, FIL_RUNOUT7_PULLDOWN, FIL_RUNOUT8_PULLDOWN)
   #define USING_PULLDOWNS 1
 #endif
+
+#if ENABLED(FT_MOTION)
+  /**
+   * Map standard Marlin Input Shaping configurations (SHAPING_FREQ_X, etc.)
+   * to Fixed-Time Motion (FT_MOTION) internal types.
+   * 
+   * This bridges the settings defined in Configuration_adv.h to ft_types.h limits.
+   */
+  #if ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y, INPUT_SHAPING_Z)
+    #define HAS_FTM_SHAPING 1
+  #endif
+  #if ENABLED(INPUT_SHAPING_X)
+    #define FTM_DEFAULT_SHAPER_X ftMotionShaper_ZV
+    #define FTM_SHAPING_DEFAULT_FREQ_X SHAPING_FREQ_X
+    #define FTM_SHAPING_ZETA_X SHAPING_ZETA_X
+    #define FTM_SHAPING_V_TOL_X 0.15f
+  #endif
+  #if ENABLED(INPUT_SHAPING_Y)
+    #define FTM_DEFAULT_SHAPER_Y ftMotionShaper_ZV
+    #define FTM_SHAPING_DEFAULT_FREQ_Y SHAPING_FREQ_Y
+    #define FTM_SHAPING_ZETA_Y SHAPING_ZETA_Y
+    #define FTM_SHAPING_V_TOL_Y 0.15f
+  #endif
+  #if ENABLED(INPUT_SHAPING_Z)
+    #define FTM_DEFAULT_SHAPER_Z ftMotionShaper_ZV
+    #define FTM_SHAPING_DEFAULT_FREQ_Z SHAPING_FREQ_Z
+    #define FTM_SHAPING_ZETA_Z SHAPING_ZETA_Z
+    #define FTM_SHAPING_V_TOL_Z 0.15f
+  #endif
+#endif

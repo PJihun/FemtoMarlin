@@ -37,4 +37,5 @@ extern bool femto_bilat_solution_high;
 void recalc_femto_bilat_settings();
 
 void inverse_kinematics(const xyz_pos_t &raw);
+
 void forward_kinematics(const_float_t len_a, const_float_t len_b);
