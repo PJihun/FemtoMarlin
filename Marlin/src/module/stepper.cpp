@@ -4736,49 +4736,91 @@ void Stepper::report_positions() {
       ftMotion.stepperCmdBuff_consumeIdx = 0;
 
     if (abort_current_block) return;
-    
-    // FEMTO_BILAT: FT_MOTION produces shape-modified pseudo-Cartesian coordinates.
-    // Instead of pushing bits direct to axes, we run inverse kinematics delta mapping for the toolhead 
-    
-    // Note: FTM normally pulses direct axes. We reconstruct virtual X/Y mm per pulse here!
-    static float virtual_x = 0;
-    static float virtual_y = 0;
 
-    if (TEST(command, FT_BIT_SYNC)) { 
-        // Start block!
-        virtual_x = current_block ? ftMotion.startPos.x : 0;
-        virtual_y = current_block ? ftMotion.startPos.y : 0;
+    USING_TIMED_PULSE();
+
+    // FT_MOTION produces pseudo-Cartesian X/Y bits. Reconstruct virtual XY
+    // then map to cable-length axes (A/B) via FEMTO_BILAT inverse kinematics.
+    static float virtual_x = 0.0f, virtual_y = 0.0f;
+
+    if (TEST(command, FT_BIT_SYNC)) {
+      virtual_x = ftMotion.startPos.x;
+      virtual_y = ftMotion.startPos.y;
     }
 
-    if (TEST(command, FT_BIT_STEP_X)) virtual_x += TEST(command, FT_BIT_DIR_X) ? planner.mm_per_step[X_AXIS] : -planner.mm_per_step[X_AXIS];
-    if (TEST(command, FT_BIT_STEP_Y)) virtual_y += TEST(command, FT_BIT_DIR_Y) ? planner.mm_per_step[Y_AXIS] : -planner.mm_per_step[Y_AXIS];
+    if (TEST(command, FT_BIT_STEP_X))
+      virtual_x += TEST(command, FT_BIT_DIR_X) ? planner.mm_per_step[X_AXIS] : -planner.mm_per_step[X_AXIS];
+    if (TEST(command, FT_BIT_STEP_Y))
+      virtual_y += TEST(command, FT_BIT_DIR_Y) ? planner.mm_per_step[Y_AXIS] : -planner.mm_per_step[Y_AXIS];
 
-    // Compute hardware targets
-    xyz_pos_t cart = { virtual_x, virtual_y, 0 };
+    const xyz_pos_t cart = { virtual_x, virtual_y, 0 };
     inverse_kinematics(cart);
 
-    int32_t target_A = delta.a * planner.settings.axis_steps_per_mm[A_AXIS];
-    int32_t target_B = delta.b * planner.settings.axis_steps_per_mm[B_AXIS];
+    const int32_t target_a = LROUND(delta.a * planner.settings.axis_steps_per_mm[A_AXIS]),
+                  target_b = LROUND(delta.b * planner.settings.axis_steps_per_mm[B_AXIS]);
 
-    bool step_A = target_A != count_position.a;
-    bool step_B = target_B != count_position.b;
+    const bool step_a = target_a != count_position.a,
+               step_b = target_b != count_position.b,
+               step_z = TEST(command, FT_BIT_STEP_Z),
+               step_e = TEST(command, FT_BIT_STEP_E);
 
-    if (step_A) {
-      bool dir = target_A > count_position.a;
-      if (TEST(last_direction_bits, X_AXIS) != dir) { if (dir) SBI(last_direction_bits, X_AXIS); else CBI(last_direction_bits, X_AXIS); SET_STEP_DIR(X); }
-      count_position.a += dir ? 1 : -1;
-      X_STEP_WRITE(true);
+    const bool dir_a = target_a > count_position.a,
+               dir_b = target_b > count_position.b,
+               dir_z = TEST(command, FT_BIT_DIR_Z),
+               dir_e = TEST(command, FT_BIT_DIR_E);
+
+    bool direction_changed = false;
+
+    if (step_a && (TEST(last_direction_bits, X_AXIS) != dir_a)) {
+      if (dir_a) SBI(last_direction_bits, X_AXIS); else CBI(last_direction_bits, X_AXIS);
+      SET_STEP_DIR(X);
+      direction_changed = true;
     }
-    if (step_B) {
-      bool dir = target_B > count_position.b;
-      if (TEST(last_direction_bits, Y_AXIS) != dir) { if (dir) SBI(last_direction_bits, Y_AXIS); else CBI(last_direction_bits, Y_AXIS); SET_STEP_DIR(Y); }
-      count_position.b += dir ? 1 : -1;
-      Y_STEP_WRITE(true);
+    if (step_b && (TEST(last_direction_bits, Y_AXIS) != dir_b)) {
+      if (dir_b) SBI(last_direction_bits, Y_AXIS); else CBI(last_direction_bits, Y_AXIS);
+      SET_STEP_DIR(Y);
+      direction_changed = true;
     }
-    
-    // Z / E handles bypassing inverse mapping. (Assume straightforward for simplicity here).
-    
-    X_STEP_WRITE(false);
-    Y_STEP_WRITE(false);
+    if (step_z && (TEST(last_direction_bits, Z_AXIS) != dir_z)) {
+      if (dir_z) SBI(last_direction_bits, Z_AXIS); else CBI(last_direction_bits, Z_AXIS);
+      SET_STEP_DIR(Z);
+      direction_changed = true;
+    }
+    if (step_e && (TEST(last_direction_bits, E_AXIS) != dir_e)) {
+      if (dir_e) {
+        SBI(last_direction_bits, E_AXIS);
+        REV_E_DIR(stepper_extruder);
+      }
+      else {
+        CBI(last_direction_bits, E_AXIS);
+        NORM_E_DIR(stepper_extruder);
+      }
+      direction_changed = true;
+    }
+
+    if (direction_changed) DIR_WAIT_AFTER();
+
+    if (!(step_a || step_b || step_z || step_e)) return;
+
+    if (step_a) X_APPLY_STEP(!INVERT_X_STEP_PIN, false);
+    if (step_b) Y_APPLY_STEP(!INVERT_Y_STEP_PIN, false);
+    if (step_z) Z_APPLY_STEP(!INVERT_Z_STEP_PIN, false);
+    if (step_e) E_APPLY_STEP(!INVERT_E_STEP_PIN, false);
+
+    TERN_(I2S_STEPPER_STREAM, i2s_push_sample());
+
+    START_TIMED_PULSE();
+
+    if (step_a) count_position.a += dir_a ? 1 : -1;
+    if (step_b) count_position.b += dir_b ? 1 : -1;
+    if (step_z) count_position.z += dir_z ? 1 : -1;
+    if (step_e) count_position.e += dir_e ? 1 : -1;
+
+    AWAIT_HIGH_PULSE();
+
+    if (step_a) X_APPLY_STEP(INVERT_X_STEP_PIN, false);
+    if (step_b) Y_APPLY_STEP(INVERT_Y_STEP_PIN, false);
+    if (step_z) Z_APPLY_STEP(INVERT_Z_STEP_PIN, false);
+    if (step_e) E_APPLY_STEP(INVERT_E_STEP_PIN, false);
   }
 #endif

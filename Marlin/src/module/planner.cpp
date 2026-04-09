@@ -1786,6 +1786,13 @@ float Planner::get_axis_position_mm(const AxisEnum axis) {
 /**
  * Block until the planner is finished processing
  */
+bool Planner::busy() {
+#if ENABLED(FT_MOTION)
+  return has_blocks_queued() || stepper.is_awake() || ftMotion.stepperCmdBuffHasData;
+#else
+  return has_blocks_queued() || stepper.is_awake();
+#endif
+}
 void Planner::synchronize() { while (busy()) idle(); }
 
 /**
