@@ -20,7 +20,7 @@
  * FTM_BATCH_SIZE           : Standard batch size for trajectory point calculation
  * FTM_ZMAX                 : Maximum step delay window allowed for Input Shaping
  */
-#define FTM_STEPPERCMD_BUFF_SIZE 4096
+#define FTM_STEPPERCMD_BUFF_SIZE 1024
 #define FTM_WINDOW_SIZE 64
 #define FTM_BATCH_SIZE  32
 #define FTM_ZMAX 256
