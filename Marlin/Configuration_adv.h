@@ -4331,7 +4331,7 @@
  *   #define WIFI_SSID "WiFi SSID"
  *   #define WIFI_PWD  "WiFi Password"
  */
-//#include "Configuration_Secure.h" // External file with WiFi SSID / Password
+#include "Configuration_Secure.h" // External file with WiFi SSID / Password
 #endif
 
 /**
@@ -4454,11 +4454,22 @@
 // @section develop
 
 /**
- * Input Shaping
+ * Fixed-Time Motion (FT_MOTION) & Input Shaping
  *
- * Zero Vibration (ZV) input shaping for the FEMTO_BILAT motion axes.
- * Tune and apply runtime values with M593.
+ * FT_MOTION implements a fixed-timestep motion generation engine, 
+ * which serves as the backbone for advanced input shaping.
+ *
+ * Input Shaping minimizes ghosting and ringing in prints by counteracting 
+ * machine vibrations. It currently maps to the FTM back-end (ZV shaper by default).
+ *
+ * To tune your machine:
+ *  - SHAPING_FREQ_*: Base frequency of the axis vibration (Hz).
+ *  - SHAPING_ZETA_*: Damping factor (0.0 - 1.0, typical is 0.1 - 0.2).
+ *
+ * Note: Runtime shaping parameters can be adjusted via M593.
  */
+#define FT_MOTION
+
 #if ENABLED(FEMTO_BILAT)
       #define INPUT_SHAPING_X
       #define INPUT_SHAPING_Y
@@ -4466,16 +4477,16 @@
 
 #if ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y, INPUT_SHAPING_Z)
       #if ENABLED(INPUT_SHAPING_X)
-            #define SHAPING_FREQ_X 40.0
-            #define SHAPING_ZETA_X 0.15
+            #define SHAPING_FREQ_X 40.0   // (Hz) Base frequency of X-axis vibrations
+            #define SHAPING_ZETA_X 0.15   // Damping factor for X-axis
       #endif
       #if ENABLED(INPUT_SHAPING_Y)
-            #define SHAPING_FREQ_Y 40.0
-            #define SHAPING_ZETA_Y 0.15
+            #define SHAPING_FREQ_Y 40.0   // (Hz) Base frequency of Y-axis vibrations
+            #define SHAPING_ZETA_Y 0.15   // Damping factor for Y-axis
       #endif
       #if ENABLED(INPUT_SHAPING_Z)
-            #define SHAPING_FREQ_Z 40.0
-            #define SHAPING_ZETA_Z 0.15
+            #define SHAPING_FREQ_Z 40.0   // (Hz) Base frequency of Z-axis vibrations
+            #define SHAPING_ZETA_Z 0.15   // Damping factor for Z-axis
       #endif
       //#define SHAPING_MIN_FREQ 20.0
       //#define SHAPING_MAX_STEPRATE 10000

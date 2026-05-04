@@ -3,3 +3,4 @@ Thumbs.db
 *.orig
 embedded/node_modules
 embedded/dist
+configuration_secure.h

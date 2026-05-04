@@ -12,6 +12,7 @@ Please note that ESP3DLib was still in alpha at the moment
 1. Connect your ESP32 board by USB.
 2. Select the correct PlatformIO environment
 	- `mks_tinybee`
+	- note: `platformio.ini` default env may differ; use `-e mks_tinybee` for this board
 3. Build and flash:
 
 ```bash
@@ -19,6 +20,13 @@ pio run -e mks_tinybee -t upload
 ```
 
 If auto-detection fails, set your serial port in `ini/esp32.ini` (or pass `--upload-port <port>`).
+
+If your build fails with a missing `Configuration_Secure.h`, create `Marlin/Configuration_Secure.h` with your WiFi credentials:
+
+```cpp
+#define WIFI_SSID "your-ssid"
+#define WIFI_PWD  "your-password"
+```
 
 ### 2) Install / update ESP3D-WEBUI on the ESP32
 
@@ -55,15 +63,15 @@ Where:
 - `P = (x, y)` is toolhead position
 - `r1`, `r2` are cable lengths to anchors A and B
 
-### 1) Enable FEMTO_BILAT in Configuration.h
+### 1) Ensure FEMTO_BILAT is enabled in Configuration.h
 
 In `Marlin/Configuration.h`:
 
-1. Uncomment `#define FEMTO_BILAT`
+1. Ensure `#define FEMTO_BILAT` is enabled
 2. Set the FEMTO_BILAT parameters:
 
 ```cpp
-//#define FEMTO_BILAT
+#define FEMTO_BILAT
 #if ENABLED(FEMTO_BILAT)
 	#define FEMTO_BILAT_ANCHOR_A_X 0.0f
 	#define FEMTO_BILAT_ANCHOR_A_Y 0.0f
@@ -223,6 +231,4 @@ If you do have reliable X/Y endstops (or a custom XY homing method), then a full
 - short moves only until geometry is confirmed
 
 After geometry and scaling are stable, tune speed and acceleration upward.
-
-
 
