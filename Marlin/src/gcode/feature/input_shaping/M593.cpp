@@ -48,7 +48,7 @@ void GcodeSuite::M593_report(const bool forReplay/*=true*/) {
 
 /**
  * M593: Get or Set Input Shaping Parameters
- *  D<factor>    Set damping factor 0..0.99 (inclusive).
+ *  D<factor>    Set damping factor [0, 0.99].
  *  F<frequency> Set frequency in Hz. Use 0 to disable shaping for the axis.
  *  X            Apply to X axis.
  *  Y            Apply to Y axis.
@@ -65,7 +65,7 @@ void GcodeSuite::M593() {
   if (parser.seen('D')) {
     const float zeta = parser.value_float();
     if (!WITHIN(zeta, 0.0f, 0.99f))
-      SERIAL_ECHO_MSG("?Zeta (D) value out of range between 0 and 0.99 (inclusive)");
+      SERIAL_ECHO_MSG("?Zeta (D) value must be in range [0, 0.99]");
     else {
       if (for_X) stepper.set_shaping_damping_ratio(X_AXIS, zeta);
       if (for_Y) stepper.set_shaping_damping_ratio(Y_AXIS, zeta);

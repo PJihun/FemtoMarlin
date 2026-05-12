@@ -1621,11 +1621,11 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
 
   #if ENABLED(INPUT_SHAPING_X)
     static_assert((SHAPING_FREQ_X) > 0, "SHAPING_FREQ_X must be > 0.");
-    static_assert((SHAPING_ZETA_X) >= 0 && (SHAPING_ZETA_X) <= 0.99f, "SHAPING_ZETA_X must be between 0 and 0.99 (inclusive).");
+    static_assert((SHAPING_ZETA_X) >= 0 && (SHAPING_ZETA_X) <= 0.99f, "SHAPING_ZETA_X must be in range [0, 0.99].");
   #endif
   #if ENABLED(INPUT_SHAPING_Y)
     static_assert((SHAPING_FREQ_Y) > 0, "SHAPING_FREQ_Y must be > 0.");
-    static_assert((SHAPING_ZETA_Y) >= 0 && (SHAPING_ZETA_Y) <= 0.99f, "SHAPING_ZETA_Y must be between 0 and 0.99 (inclusive).");
+    static_assert((SHAPING_ZETA_Y) >= 0 && (SHAPING_ZETA_Y) <= 0.99f, "SHAPING_ZETA_Y must be in range [0, 0.99].");
   #endif
 #endif
 
