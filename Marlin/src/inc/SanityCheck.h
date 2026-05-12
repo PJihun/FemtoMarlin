@@ -1617,21 +1617,15 @@ static_assert(Y_MAX_LENGTH >= Y_BED_SIZE, "Movement bounds (Y_MIN_POS, Y_MAX_POS
     #error "This fork currently supports Input Shaping only with FEMTO_BILAT kinematics."
   #elif DISABLED(M970_M979_GCODE)
     #error "This fork currently requires M970_M979_GCODE when Input Shaping is enabled."
-  #elif ENABLED(INPUT_SHAPING_Z)
-    #error "INPUT_SHAPING_Z is not yet supported in this fork."
   #endif
 
   #if ENABLED(INPUT_SHAPING_X)
     static_assert((SHAPING_FREQ_X) > 0, "SHAPING_FREQ_X must be > 0.");
-    static_assert((SHAPING_ZETA_X) >= 0 && (SHAPING_ZETA_X) <= 1, "SHAPING_ZETA_X must be between 0 and 1.");
+    static_assert((SHAPING_ZETA_X) >= 0 && (SHAPING_ZETA_X) <= 0.99f, "SHAPING_ZETA_X must be between 0 and 0.99.");
   #endif
   #if ENABLED(INPUT_SHAPING_Y)
     static_assert((SHAPING_FREQ_Y) > 0, "SHAPING_FREQ_Y must be > 0.");
-    static_assert((SHAPING_ZETA_Y) >= 0 && (SHAPING_ZETA_Y) <= 1, "SHAPING_ZETA_Y must be between 0 and 1.");
-  #endif
-  #if ENABLED(INPUT_SHAPING_Z)
-    static_assert((SHAPING_FREQ_Z) > 0, "SHAPING_FREQ_Z must be > 0.");
-    static_assert((SHAPING_ZETA_Z) >= 0 && (SHAPING_ZETA_Z) <= 1, "SHAPING_ZETA_Z must be between 0 and 1.");
+    static_assert((SHAPING_ZETA_Y) >= 0 && (SHAPING_ZETA_Y) <= 0.99f, "SHAPING_ZETA_Y must be between 0 and 0.99.");
   #endif
 #endif
 

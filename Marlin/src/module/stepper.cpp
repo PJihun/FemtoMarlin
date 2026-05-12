@@ -264,9 +264,6 @@ uint32_t Stepper::advance_divisor = 0,
   #if ENABLED(INPUT_SHAPING_Y)
     SHAPING_VAR_DEFS(y, SHAPING_FREQ_Y, SHAPING_ZETA_Y)
   #endif
-  #if ENABLED(INPUT_SHAPING_Z)
-    SHAPING_VAR_DEFS(z, SHAPING_FREQ_Z, SHAPING_ZETA_Z)
-  #endif
 #endif
 
 #if ENABLED(INTEGRATED_BABYSTEPPING)
@@ -1617,9 +1614,6 @@ if (!using_ftMotion) {
         #if ENABLED(INPUT_SHAPING_Y)
           NOMORE(interval, ShapingQueue::peek_y());
         #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          NOMORE(interval, ShapingQueue::peek_z());
-        #endif
       }
 
     //
@@ -1745,10 +1739,6 @@ void Stepper::pulse_phase_isr() {
         #if ENABLED(INPUT_SHAPING_Y)
           shaping_y.delta_error = 0;
           shaping_y.last_block_end_pos = count_position.y;
-        #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          shaping_z.delta_error = 0;
-          shaping_z.last_block_end_pos = count_position.z;
         #endif
       #endif
     }
@@ -1995,14 +1985,7 @@ void Stepper::pulse_phase_isr() {
         #endif
       #endif
       #if HAS_Z_STEP
-        #if ENABLED(INPUT_SHAPING_Z)
-          if (shaping_z.enabled)
-            PULSE_PREP_SHAPED(Z);
-          else
-            PULSE_PREP(Z);
-        #else
-          PULSE_PREP(Z);
-        #endif
+        PULSE_PREP(Z);
       #endif
       #if HAS_I_STEP
         PULSE_PREP(I);
@@ -2041,8 +2024,8 @@ void Stepper::pulse_phase_isr() {
 
       #if HAS_ZV_SHAPING
         // For shaped axes, queue an echo and emit the first weighted pulse contribution.
-        bool x_step = false, y_step = false, z_step = false;
-        bool x_forward = false, y_forward = false, z_forward = false;
+        bool x_step = false, y_step = false;
+        bool x_forward = false, y_forward = false;
 
         #if ENABLED(INPUT_SHAPING_X)
           x_step = step_needed.x && shaping_x.enabled;
@@ -2052,13 +2035,9 @@ void Stepper::pulse_phase_isr() {
           y_step = step_needed.y && shaping_y.enabled;
           y_forward = shaping_y.forward;
         #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          z_step = step_needed.z && shaping_z.enabled;
-          z_forward = shaping_z.forward;
-        #endif
 
-        if (x_step || y_step || z_step)
-          ShapingQueue::enqueue(x_step, x_forward, y_step, y_forward, z_step, z_forward);
+        if (x_step || y_step)
+          ShapingQueue::enqueue(x_step, x_forward, y_step, y_forward);
 
         #if ENABLED(INPUT_SHAPING_X)
           if (x_step)
@@ -2067,10 +2046,6 @@ void Stepper::pulse_phase_isr() {
         #if ENABLED(INPUT_SHAPING_Y)
           if (y_step)
             PULSE_PREP_SHAPING(Y, shaping_y.delta_error, shaping_y.forward ? shaping_y.factor1 : -shaping_y.factor1);
-        #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          if (z_step)
-            PULSE_PREP_SHAPING(Z, shaping_z.delta_error, shaping_z.forward ? shaping_z.factor1 : -shaping_z.factor1);
         #endif
       #endif
     }
@@ -2191,9 +2166,6 @@ void Stepper::pulse_phase_isr() {
     #if ENABLED(INPUT_SHAPING_Y)
       step_needed.y = !ShapingQueue::peek_y() || ShapingQueue::free_count_y() < steps_per_isr;
     #endif
-    #if ENABLED(INPUT_SHAPING_Z)
-      step_needed.z = !ShapingQueue::peek_z() || ShapingQueue::free_count_z() < steps_per_isr;
-    #endif
 
     bool shaped_pending =
       #if ENABLED(INPUT_SHAPING_X)
@@ -2203,9 +2175,6 @@ void Stepper::pulse_phase_isr() {
       #endif
       #if ENABLED(INPUT_SHAPING_Y)
         || step_needed.y
-      #endif
-      #if ENABLED(INPUT_SHAPING_Z)
-        || step_needed.z
       #endif
       ;
 
@@ -2226,14 +2195,6 @@ void Stepper::pulse_phase_isr() {
         }
       #endif
 
-      #if ENABLED(INPUT_SHAPING_Z)
-        if (step_needed.z) {
-          const bool forward = ShapingQueue::dequeue_z();
-          PULSE_PREP_SHAPING(Z, shaping_z.delta_error, forward ? shaping_z.factor2 : -shaping_z.factor2);
-          PULSE_START(Z);
-        }
-      #endif
-
       #if ENABLED(I2S_STEPPER_STREAM)
         i2s_push_sample();
       #endif
@@ -2249,18 +2210,12 @@ void Stepper::pulse_phase_isr() {
       #if ENABLED(INPUT_SHAPING_Y)
         if (step_needed.y) PULSE_STOP(Y);
       #endif
-      #if ENABLED(INPUT_SHAPING_Z)
-        if (step_needed.z) PULSE_STOP(Z);
-      #endif
 
       #if ENABLED(INPUT_SHAPING_X)
         step_needed.x = !ShapingQueue::peek_x() || ShapingQueue::free_count_x() < steps_per_isr;
       #endif
       #if ENABLED(INPUT_SHAPING_Y)
         step_needed.y = !ShapingQueue::peek_y() || ShapingQueue::free_count_y() < steps_per_isr;
-      #endif
-      #if ENABLED(INPUT_SHAPING_Z)
-        step_needed.z = !ShapingQueue::peek_z() || ShapingQueue::free_count_z() < steps_per_isr;
       #endif
 
       shaped_pending =
@@ -2271,9 +2226,6 @@ void Stepper::pulse_phase_isr() {
         #endif
         #if ENABLED(INPUT_SHAPING_Y)
           || step_needed.y
-        #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          || step_needed.z
         #endif
         ;
 
@@ -2682,18 +2634,6 @@ uint32_t Stepper::block_phase_isr() {
         }
       #endif
 
-      #if ENABLED(INPUT_SHAPING_Z)
-        if (shaping_z.enabled) {
-          const int32_t z_steps = TEST(current_block->direction_bits, Z_AXIS) ? current_block->steps.c : -current_block->steps.c;
-          shaping_z.last_block_end_pos += z_steps;
-          shaping_z.forward = TEST(current_block->direction_bits, Z_AXIS);
-          if (!ShapingQueue::empty_z()) {
-            if (TEST(last_direction_bits, Z_AXIS)) SBI(current_block->direction_bits, Z_AXIS);
-            else CBI(current_block->direction_bits, Z_AXIS);
-          }
-        }
-      #endif
-
       // No step events completed so far
       step_events_completed = 0;
 
@@ -2852,15 +2792,6 @@ uint32_t Stepper::block_phase_isr() {
         shaping_y.zeta = zeta;
       }
     #endif
-    #if ENABLED(INPUT_SHAPING_Z)
-      if (axis == Z_AXIS) {
-        const uint8_t f2 = uint8_t(factor2), f1 = 128 - f2;
-        changed = changed || shaping_z.factor1 != f1 || shaping_z.factor2 != f2 || shaping_z.zeta != zeta;
-        shaping_z.factor2 = f2;
-        shaping_z.factor1 = f1;
-        shaping_z.zeta = zeta;
-      }
-    #endif
 
     if (was_on) hal.isr_on();
 
@@ -2895,9 +2826,6 @@ uint32_t Stepper::block_phase_isr() {
     #endif
     #if ENABLED(INPUT_SHAPING_Y)
       if (axis == Y_AXIS) return shaping_y.zeta;
-    #endif
-    #if ENABLED(INPUT_SHAPING_Z)
-      if (axis == Z_AXIS) return shaping_z.zeta;
     #endif
     return -1;
   }
@@ -2982,20 +2910,6 @@ uint32_t Stepper::block_phase_isr() {
       }
     #endif
 
-    #if ENABLED(INPUT_SHAPING_Z)
-      if (axis == Z_AXIS) {
-        const bool enabled = freq > 0.0f;
-        const float target_freq = enabled ? freq : 0.0f;
-        const shaping_time_t delay = target_freq > 0.0f ? shaping_time_t(float(uint32_t(STEPPER_TIMER_RATE) / 2) / target_freq) : shaping_time_t(-1);
-        changed = changed || shaping_z.frequency != target_freq || shaping_z.enabled != enabled;
-        ShapingQueue::set_delay(Z_AXIS, delay);
-        shaping_z.frequency = target_freq;
-        shaping_z.enabled = enabled;
-        shaping_z.delta_error = 0;
-        shaping_z.last_block_end_pos = count_position.z;
-      }
-    #endif
-
     if (was_on) hal.isr_on();
 
     if (changed)
@@ -3009,9 +2923,6 @@ uint32_t Stepper::block_phase_isr() {
     #if ENABLED(INPUT_SHAPING_Y)
       if (axis == Y_AXIS) return shaping_y.frequency;
     #endif
-    #if ENABLED(INPUT_SHAPING_Z)
-      if (axis == Z_AXIS) return shaping_z.frequency;
-    #endif
     return -1;
   }
 
@@ -3020,7 +2931,7 @@ uint32_t Stepper::block_phase_isr() {
   // Runtime-only fallback for builds that enable tuning commands without ISR shaping.
   void Stepper::set_shaping_damping_ratio(const AxisEnum axis, const_float_t zeta) {
     UNUSED(axis);
-    if (!WITHIN(zeta, 0, 1)) return;
+    if (!WITHIN(zeta, 0.0f, 0.99f)) return;
 
     input_shaper_runtime_apply(
       input_shaper_runtime.axis_mask,
@@ -3513,9 +3424,6 @@ void Stepper::_set_position(const abce_long_t &spos) {
   #if ENABLED(INPUT_SHAPING_Y)
     const int32_t y_shaping_delta = count_position.y - shaping_y.last_block_end_pos;
   #endif
-  #if ENABLED(INPUT_SHAPING_Z)
-    const int32_t z_shaping_delta = count_position.z - shaping_z.last_block_end_pos;
-  #endif
 
   #if ANY(IS_CORE, MARKFORGED_XY, MARKFORGED_YX)
     #if CORE_IS_XY
@@ -3563,15 +3471,6 @@ void Stepper::_set_position(const abce_long_t &spos) {
     }
     else
       shaping_y.last_block_end_pos = count_position.y;
-  #endif
-
-  #if ENABLED(INPUT_SHAPING_Z)
-    if (shaping_z.enabled) {
-      count_position.z += z_shaping_delta;
-      shaping_z.last_block_end_pos = count_position.z - z_shaping_delta;
-    }
-    else
-      shaping_z.last_block_end_pos = count_position.z;
   #endif
 }
 

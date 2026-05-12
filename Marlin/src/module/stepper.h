@@ -314,7 +314,7 @@ constexpr ena_mask_t enable_overlap[] = {
 
   // Worst-case queue depth estimate for delayed echo pulses.
   #ifndef SHAPING_MIN_FREQ
-    #define SHAPING_MIN_FREQ _MIN(__FLT_MAX__ OPTARG(INPUT_SHAPING_X, SHAPING_FREQ_X) OPTARG(INPUT_SHAPING_Y, SHAPING_FREQ_Y) OPTARG(INPUT_SHAPING_Z, SHAPING_FREQ_Z))
+    #define SHAPING_MIN_FREQ _MIN(__FLT_MAX__ OPTARG(INPUT_SHAPING_X, SHAPING_FREQ_X) OPTARG(INPUT_SHAPING_Y, SHAPING_FREQ_Y))
   #endif
   constexpr float shaping_min_freq = SHAPING_MIN_FREQ;
   constexpr uint16_t shaping_echoes = FLOOR(float(MAX_STEP_ISR_FREQUENCY_1X) / shaping_min_freq / 2.0f) + 3;
@@ -333,9 +333,6 @@ constexpr ena_mask_t enable_overlap[] = {
     #endif
     #if ENABLED(INPUT_SHAPING_Y)
       shaping_echo_t y:2;
-    #endif
-    #if ENABLED(INPUT_SHAPING_Z)
-      shaping_echo_t z:2;
     #endif
   };
 
@@ -358,9 +355,6 @@ constexpr ena_mask_t enable_overlap[] = {
       #if ENABLED(INPUT_SHAPING_Y)
         SHAPING_QUEUE_AXIS_VARS(y)
       #endif
-      #if ENABLED(INPUT_SHAPING_Z)
-        SHAPING_QUEUE_AXIS_VARS(z)
-      #endif
 
     public:
       static void decrement_delays(const shaping_time_t interval) {
@@ -371,9 +365,6 @@ constexpr ena_mask_t enable_overlap[] = {
         #if ENABLED(INPUT_SHAPING_Y)
           if (_peek_y != shaping_time_t(-1)) _peek_y -= interval;
         #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          if (_peek_z != shaping_time_t(-1)) _peek_z -= interval;
-        #endif
       }
 
       static void set_delay(const AxisEnum axis, const shaping_time_t delay) {
@@ -383,12 +374,9 @@ constexpr ena_mask_t enable_overlap[] = {
         #if ENABLED(INPUT_SHAPING_Y)
           if (axis == Y_AXIS) delay_y = delay;
         #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          if (axis == Z_AXIS) delay_z = delay;
-        #endif
       }
 
-      static void enqueue(const bool x_step, const bool x_forward, const bool y_step, const bool y_forward, const bool z_step, const bool z_forward) {
+      static void enqueue(const bool x_step, const bool x_forward, const bool y_step, const bool y_forward) {
         #if ENABLED(INPUT_SHAPING_X)
           if (x_step) {
             if (head_x == tail) _peek_x = delay_x;
@@ -416,21 +404,6 @@ constexpr ena_mask_t enable_overlap[] = {
               _free_count_y--;
             else if (++head_y == shaping_echoes)
               head_y = 0;
-          }
-        #endif
-
-        #if ENABLED(INPUT_SHAPING_Z)
-          if (z_step) {
-            if (head_z == tail) _peek_z = delay_z;
-            echo_axes[tail].z = z_forward ? ECHO_FWD : ECHO_BWD;
-            _free_count_z--;
-          }
-          else {
-            echo_axes[tail].z = ECHO_NONE;
-            if (head_z != tail)
-              _free_count_z--;
-            else if (++head_z == shaping_echoes)
-              head_z = 0;
           }
         #endif
 
@@ -468,21 +441,6 @@ constexpr ena_mask_t enable_overlap[] = {
         static uint16_t free_count_y() { return _free_count_y; }
       #endif
 
-      #if ENABLED(INPUT_SHAPING_Z)
-        static shaping_time_t peek_z() { return _peek_z; }
-        static bool dequeue_z() {
-          const bool forward = echo_axes[head_z].z == ECHO_FWD;
-          do {
-            _free_count_z++;
-            if (++head_z == shaping_echoes) head_z = 0;
-          } while (head_z != tail && echo_axes[head_z].z == ECHO_NONE);
-          _peek_z = head_z == tail ? shaping_time_t(-1) : times[head_z] + delay_z - now;
-          return forward;
-        }
-        static bool empty_z() { return head_z == tail; }
-        static uint16_t free_count_z() { return _free_count_z; }
-      #endif
-
       static void purge() {
         const shaping_time_t st = shaping_time_t(-1);
         #if ENABLED(INPUT_SHAPING_X)
@@ -495,13 +453,8 @@ constexpr ena_mask_t enable_overlap[] = {
           _free_count_y = shaping_echoes - 1;
           _peek_y = st;
         #endif
-        #if ENABLED(INPUT_SHAPING_Z)
-          head_z = tail;
-          _free_count_z = shaping_echoes - 1;
-          _peek_z = st;
-        #endif
       }
-  };
+    };
 
   struct ShapeParams {
     float frequency;
@@ -627,9 +580,6 @@ class Stepper {
       #endif
       #if ENABLED(INPUT_SHAPING_Y)
         static ShapeParams shaping_y;
-      #endif
-      #if ENABLED(INPUT_SHAPING_Z)
-        static ShapeParams shaping_z;
       #endif
     #endif
 
