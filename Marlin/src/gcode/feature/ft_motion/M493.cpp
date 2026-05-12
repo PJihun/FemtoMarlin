@@ -327,7 +327,7 @@ void GcodeSuite::M493() {
     if (parser.seenval('I')) {
       const float val = parser.value_float();
       if (AXIS_HAS_SHAPER(X)) {
-        if (WITHIN(val, 0.01f, 0.99f)) {
+        if (WITHIN(val, 0.0f, 0.99f)) {
           ftMotion.cfg.zeta[0] = val;
           flag.update = true;
         }
@@ -388,7 +388,7 @@ void GcodeSuite::M493() {
     if (parser.seenval('J')) {
       const float val = parser.value_float();
       if (AXIS_HAS_SHAPER(Y)) {
-        if (WITHIN(val, 0.01f, 0.99f)) {
+        if (WITHIN(val, 0.0f, 0.99f)) {
           ftMotion.cfg.zeta[1] = val;
           flag.update = true;
         }
