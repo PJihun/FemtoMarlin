@@ -19,7 +19,8 @@
  * FTM_WINDOW_SIZE          : Moving window queue size for trajectory planning
  * FTM_BATCH_SIZE           : Standard batch size for trajectory point calculation
  * FTM_ZMAX                 : Maximum step delay window allowed for Input Shaping
- *                            (sized for ZVDDD/3HEI at FTM_MIN_SHAPE_FREQ with zeta in [0, 0.99])
+ *                            (sized for ZVDDD/3HEI at the minimum shaping frequency
+ *                             with zeta in [0, 0.99]; 3072 >= 4 * Ni @ 5Hz, zeta=0.99)
  */
 #define FTM_STEPPERCMD_BUFF_SIZE 1024
 #define FTM_WINDOW_SIZE 64
