@@ -1,5 +1,6 @@
 help:
 	@echo "Tasks for local development:"
+	@echo "* build:                       Build firmware via python -m platformio"
 	@echo "* tests-single-ci:             Run a single test from inside the CI"
 	@echo "* tests-single-local:          Run a single test locally"
 	@echo "* tests-single-local-docker:   Run a single test locally, using docker-compose"
@@ -16,9 +17,14 @@ help:
 	@echo "  ONLY_TEST            Limit tests to only those that contain this, or"
 	@echo "                       the index of the test (1-based)"
 	@echo "  VERBOSE_PLATFORMIO   If you want the full PIO output, set any value"
+	@echo "  BUILD_ENV            Build environment for 'make build'"
 	@echo "  GIT_RESET_HARD       Used by CI: reset all local changes. WARNING:"
 	@echo "                       THIS WILL UNDO ANY CHANGES YOU'VE MADE!"
 .PHONY: help
+
+build:
+	./buildroot/bin/pio_build $(BUILD_ENV)
+.PHONY: build
 
 tests-single-ci:
 	export GIT_RESET_HARD=true
