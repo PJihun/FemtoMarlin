@@ -181,12 +181,12 @@ void GcodeSuite::M493_report(const bool forReplay/*=true*/) {
  *
  *    A<Hz>   Set static/base frequency for the X axis
  *    F<Hz>   Set frequency scaling for the X axis
- *    I 0.0   Set damping ratio for the X axis
+ *    I 0.0-0.99   Set damping ratio for the X axis
  *    Q 0.00  Set the vibration tolerance for the X axis
  *
  *    B<Hz> Set static/base frequency for the Y axis
  *    H<Hz> Set frequency scaling for the Y axis
- *    J 0.0   Set damping ratio for the Y axis
+ *    J 0.0-0.99   Set damping ratio for the Y axis
  *    R 0.00  Set the vibration tolerance for the Y axis
  */
 void GcodeSuite::M493() {
@@ -327,7 +327,7 @@ void GcodeSuite::M493() {
     if (parser.seenval('I')) {
       const float val = parser.value_float();
       if (AXIS_HAS_SHAPER(X)) {
-        if (WITHIN(val, 0.01f, 1.0f)) {
+        if (WITHIN(val, 0.0f, 0.99f)) {
           ftMotion.cfg.zeta[0] = val;
           flag.update = true;
         }
@@ -388,7 +388,7 @@ void GcodeSuite::M493() {
     if (parser.seenval('J')) {
       const float val = parser.value_float();
       if (AXIS_HAS_SHAPER(Y)) {
-        if (WITHIN(val, 0.01f, 1.0f)) {
+        if (WITHIN(val, 0.0f, 0.99f)) {
           ftMotion.cfg.zeta[1] = val;
           flag.update = true;
         }

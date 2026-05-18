@@ -3769,7 +3769,7 @@
    * 
    * This bridges the settings defined in Configuration_adv.h to ft_types.h limits.
    */
-  #if ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y, INPUT_SHAPING_Z)
+  #if ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y)
     #define HAS_FTM_SHAPING 1
   #endif
   #if ENABLED(INPUT_SHAPING_X)
@@ -3783,11 +3783,5 @@
     #define FTM_SHAPING_DEFAULT_FREQ_Y SHAPING_FREQ_Y
     #define FTM_SHAPING_ZETA_Y SHAPING_ZETA_Y
     #define FTM_SHAPING_V_TOL_Y 0.15f
-  #endif
-  #if ENABLED(INPUT_SHAPING_Z)
-    #define FTM_DEFAULT_SHAPER_Z ftMotionShaper_ZV
-    #define FTM_SHAPING_DEFAULT_FREQ_Z SHAPING_FREQ_Z
-    #define FTM_SHAPING_ZETA_Z SHAPING_ZETA_Z
-    #define FTM_SHAPING_V_TOL_Z 0.15f
   #endif
 #endif

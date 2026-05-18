@@ -26,7 +26,7 @@
  * Conditionals set before pins.h and which depend on Configuration_adv.h.
  */
 
-#if !defined(HAS_ZV_SHAPING) && ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y, INPUT_SHAPING_Z)
+#if !defined(HAS_ZV_SHAPING) && ANY(INPUT_SHAPING_X, INPUT_SHAPING_Y)
   #define HAS_ZV_SHAPING 1
 #endif
 
