@@ -54,7 +54,7 @@ ring_buffer_pos_t RingBuffer::write(const uint8_t c) {
     return 1;
   }
 
-  // TODO: buffer is full, handle?
+  // buffer is full, caller should handle
   return 0;
 }
 
@@ -127,6 +127,14 @@ void WebSocketSerial::flush() { rx_buffer.flush(); }
 
 size_t WebSocketSerial::write(const uint8_t c) {
   size_t ret = tx_buffer.write(c);
+
+  if (ret == 0) {
+    // tx_buffer is full, flush it and then write the char
+    uint8_t tmp[TX_BUFFER_SIZE];
+    ring_buffer_pos_t size = tx_buffer.read(tmp);
+    ws.textAll(tmp, size);
+    ret = tx_buffer.write(c);
+  }
 
   if (ret && c == '\n') {
     uint8_t tmp[TX_BUFFER_SIZE];
