@@ -293,7 +293,7 @@ void FTMotion::loop() {
       case ftMotionShaper_2HEI: {
         max_i = 3U;
         const float vtolx2 = sq(vtol);
-        const float X = pow(vtolx2 * (sqrt(1.0f - vtolx2) + 1.0f), 1.0f / 3.0f);
+        const float X = CBRT(vtolx2 * (SQRT(1.0f - vtolx2) + 1.0f));
         Ai[0] = (3.0f * sq(X) + 2.0f * X + 3.0f * vtolx2) / (16.0f * X);
         Ai[1] = (0.5f - Ai[0]) * K;
         Ai[2] = Ai[1] * K;
@@ -661,7 +661,7 @@ void FTMotion::generateTrajectoryPointsFromBlock() {
       #endif
 
       #if HAS_DYNAMIC_FREQ_G
-        case dynFreqMode_MASS_BASED:
+        case dynFreqMode_MASS_BASED: {
           // Update constantly. The optimization done for Z value makes
           // less sense for E, as E is expected to constantly change.
           #if HAS_X_AXIS
@@ -673,6 +673,7 @@ void FTMotion::generateTrajectoryPointsFromBlock() {
             shaping.y.set_axis_shaping_N(cfg.shaper.y, yf, cfg.zeta.y);
           #endif
           break;
+        }
       #endif
 
       default: break;
