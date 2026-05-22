@@ -664,14 +664,16 @@ void FTMotion::generateTrajectoryPointsFromBlock() {
         case dynFreqMode_MASS_BASED:
           // Update constantly. The optimization done for Z value makes
           // less sense for E, as E is expected to constantly change.
-          #if HAS_X_AXIS
-            const float xf = _MAX(cfg.baseFreq.x + cfg.dynFreqK.x * traj.e[traj_idx_set], FTM_MIN_SHAPE_FREQ);
-            shaping.x.set_axis_shaping_N(cfg.shaper.x, xf, cfg.zeta.x);
-          #endif
-          #if HAS_Y_AXIS
-            const float yf = _MAX(cfg.baseFreq.y + cfg.dynFreqK.y * traj.e[traj_idx_set], FTM_MIN_SHAPE_FREQ);
-            shaping.y.set_axis_shaping_N(cfg.shaper.y, yf, cfg.zeta.y);
-          #endif
+          {
+            #if HAS_X_AXIS
+              const float xf = _MAX(cfg.baseFreq.x + cfg.dynFreqK.x * traj.e[traj_idx_set], FTM_MIN_SHAPE_FREQ);
+              shaping.x.set_axis_shaping_N(cfg.shaper.x, xf, cfg.zeta.x);
+            #endif
+            #if HAS_Y_AXIS
+              const float yf = _MAX(cfg.baseFreq.y + cfg.dynFreqK.y * traj.e[traj_idx_set], FTM_MIN_SHAPE_FREQ);
+              shaping.y.set_axis_shaping_N(cfg.shaper.y, yf, cfg.zeta.y);
+            #endif
+          }
           break;
       #endif
 

@@ -1302,7 +1302,8 @@ bool accumulate_window_psd(const int16_t* x_buf, const int16_t* y_buf, const int
     const float df = sqrtf(df_sq);
     const float K = expf(-0.75f * damping_ratio * IS_TUNE_PI / df);
     const float t_d = 1.0f / (shaper_freq * df);
-    const float a1 = 1.0f - 1.0f / SQRT(2.0f);
+    // ⚡ Bolt: Replace 1.0f/SQRT(x) with RSQRT(x) which compiles to fast hardware reciprocal sqrt
+    const float a1 = 1.0f - RSQRT(2.0f);
     const float a2 = (SQRT(2.0f) - 1.0f) * K;
     const float a3 = a1 * K * K;
     out.count = 3;

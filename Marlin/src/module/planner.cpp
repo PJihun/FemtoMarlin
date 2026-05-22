@@ -1185,8 +1185,9 @@ void Planner::recalculate_trapezoids() {
             // Block is not BUSY, we won the race against the Stepper ISR:
 
             // NOTE: Entry and exit factors always > 0 by all previous logic operations.
-            const float current_nominal_speed = SQRT(block->nominal_speed_sqr),
-                        nomr = 1.0f / current_nominal_speed;
+            // ⚡ Bolt: Replace 1.0f/SQRT(x) with RSQRT(x) which compiles to fast hardware reciprocal sqrt
+            const float nomr = RSQRT(block->nominal_speed_sqr),
+                        current_nominal_speed = block->nominal_speed_sqr * nomr;
             calculate_trapezoid_for_block(block, current_entry_speed * nomr, next_entry_speed * nomr);
             #if ENABLED(LIN_ADVANCE)
               if (block->use_advance_lead) {
@@ -1224,8 +1225,9 @@ void Planner::recalculate_trapezoids() {
     if (!stepper.is_block_busy(block)) {
       // Block is not BUSY, we won the race against the Stepper ISR:
 
-      const float next_nominal_speed = SQRT(next->nominal_speed_sqr),
-                  nomr = 1.0f / next_nominal_speed;
+      // ⚡ Bolt: Replace 1.0f/SQRT(x) with RSQRT(x) which compiles to fast hardware reciprocal sqrt
+      const float nomr = RSQRT(next->nominal_speed_sqr),
+                  next_nominal_speed = next->nominal_speed_sqr * nomr;
       calculate_trapezoid_for_block(next, next_entry_speed * nomr, float(MINIMUM_PLANNER_SPEED) * nomr);
       #if ENABLED(LIN_ADVANCE)
         if (next->use_advance_lead) {
