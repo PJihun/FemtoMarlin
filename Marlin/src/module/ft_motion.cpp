@@ -407,8 +407,12 @@ void FTMotion::reset() {
   interpIdx = 0;
 
   #if HAS_FTM_SHAPING
-    TERN_(HAS_X_AXIS, ZERO(shaping.x.d_zi));
-    TERN_(HAS_Y_AXIS, ZERO(shaping.y.d_zi));
+    #if HAS_X_AXIS
+    memset(shaping.x.d_zi, 0, sizeof(float) * FTM_ZMAX);
+    #endif
+    #if HAS_Y_AXIS
+    memset(shaping.y.d_zi, 0, sizeof(float) * FTM_ZMAX);
+    #endif
     shaping.zi_idx = 0;
   #endif
 
@@ -466,6 +470,14 @@ int32_t FTMotion::stepperCmdBuffItems() {
 
 // Initializes storage variables before startup.
 void FTMotion::init() {
+  #if HAS_FTM_SHAPING
+    #if HAS_X_AXIS
+      memset(shaping.x.d_zi, 0, sizeof(float) * FTM_ZMAX);
+    #endif
+    #if HAS_Y_AXIS
+      memset(shaping.y.d_zi, 0, sizeof(float) * FTM_ZMAX);
+    #endif
+  #endif
   update_shaping_params();
   reset(); // Precautionary.
 }
@@ -672,8 +684,7 @@ void FTMotion::generateTrajectoryPointsFromBlock() {
             const float yf = _MAX(cfg.baseFreq.y + cfg.dynFreqK.y * traj.e[traj_idx_set], FTM_MIN_SHAPE_FREQ);
             shaping.y.set_axis_shaping_N(cfg.shaper.y, yf, cfg.zeta.y);
           #endif
-          break;
-        }
+        } break;
       #endif
 
       default: break;
