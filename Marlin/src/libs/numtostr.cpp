@@ -31,7 +31,10 @@ char conv[8] = { 0 };
 #define DIGIMOD(n, f) DIGIT((n)/(f) % 10)
 #define RJDIGIT(n, f) ((n) >= (f) ? DIGIMOD(n, f) : ' ')
 #define MINUSOR(n, alt) (n >= 0 ? (alt) : (n = -n, '-'))
-#define INTFLOAT(V,N) (((V) * 10 * pow(10, N) + ((V) < 0 ? -5: 5)) / 10)      // pow10?
+
+// Optimization: calculate powers of 10 at compile time instead of using math library pow()
+constexpr float numtostr_pow10(const int n) { return n == 0 ? 1.0f : 10.0f * numtostr_pow10(n - 1); }
+#define INTFLOAT(V,N) (((V) * 10.0f * numtostr_pow10(N) + ((V) < 0 ? -5.0f : 5.0f)) / 10.0f)
 #define UINTFLOAT(V,N) INTFLOAT((V) < 0 ? -(V) : (V), N)
 
 // Format uint8_t (0-100) as rj string with 123% / _12% / __1% format
