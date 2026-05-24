@@ -111,7 +111,7 @@
 
 // Minimum unit (0.1) : multiple (10)
 #define UNITFDIGITS 1
-#define MINUNITMULT pow(10, UNITFDIGITS)
+#define MINUNITMULT cpow(10.0f, UNITFDIGITS)
 
 #define ENCODER_WAIT_MS                  20
 #define DWIN_VAR_UPDATE_INTERVAL         1024

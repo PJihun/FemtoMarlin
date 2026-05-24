@@ -209,8 +209,8 @@ void SetValueOnClick(uint8_t process, const int32_t lo, const int32_t hi, const 
 //  LiveUpdate: live update function when the encoder changes
 //  Apply: update function when the encoder is pressed
 void SetValueOnClick(uint8_t process, const float lo, const float hi, uint8_t dp, const float val, void (*Apply)() /*= nullptr*/, void (*LiveUpdate)() /*= nullptr*/) {
-  const int32_t value =  round(val * POW(10, dp));
-  SetOnClick(process, lo * POW(10, dp), hi * POW(10, dp), dp, value, Apply, LiveUpdate);
+  const int32_t value =  round(val * cpow(10.0f, dp));
+  SetOnClick(process, lo * cpow(10.0f, dp), hi * cpow(10.0f, dp), dp, value, Apply, LiveUpdate);
   DWINUI::Draw_Signed_Float(HMI_data.Text_Color, HMI_data.Selected_Color, 3, dp, VALX - dp * DWINUI::fontWidth(DWIN_FONT_MENU), MBASE(CurrentMenu->line()), val);
 }
 
@@ -356,12 +356,12 @@ int8_t HMI_GetFloat(uint8_t dp, int32_t lo, int32_t hi) {
   if (encoder_diffState != ENCODER_DIFF_NO) {
     if (Apply_Encoder(encoder_diffState, MenuData.Value)) {
       EncoderRate.enabled = false;
-      DWINUI::Draw_Signed_Float(HMI_data.Text_Color, HMI_data.Background_Color, 3, dp, VALX - dp * DWINUI::fontWidth(DWIN_FONT_MENU), MBASE(CurrentMenu->line()), MenuData.Value / POW(10, dp));
+      DWINUI::Draw_Signed_Float(HMI_data.Text_Color, HMI_data.Background_Color, 3, dp, VALX - dp * DWINUI::fontWidth(DWIN_FONT_MENU), MBASE(CurrentMenu->line()), MenuData.Value / cpow(10.0f, dp));
       checkkey = Menu;
       return 2;
     }
     LIMIT(MenuData.Value, lo, hi);
-    DWINUI::Draw_Signed_Float(HMI_data.Text_Color, HMI_data.Selected_Color, 3, dp, VALX - dp * DWINUI::fontWidth(DWIN_FONT_MENU), MBASE(CurrentMenu->line()), MenuData.Value / POW(10, dp));
+    DWINUI::Draw_Signed_Float(HMI_data.Text_Color, HMI_data.Selected_Color, 3, dp, VALX - dp * DWINUI::fontWidth(DWIN_FONT_MENU), MBASE(CurrentMenu->line()), MenuData.Value / cpow(10.0f, dp));
     return 1;
   }
   return 0;
@@ -383,7 +383,7 @@ void HMI_SetPFloat() {
   switch (val) {
     case 0: return;
     case 1: if (MenuData.LiveUpdate) MenuData.LiveUpdate(); break;
-    case 2: *MenuData.P_Float = MenuData.Value / POW(10, MenuData.dp); if (MenuData.Apply) MenuData.Apply(); break;
+    case 2: *MenuData.P_Float = MenuData.Value / cpow(10.0f, MenuData.dp); if (MenuData.Apply) MenuData.Apply(); break;
   }
 }
 

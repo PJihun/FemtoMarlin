@@ -112,9 +112,6 @@ private:
 
 extern DGUSDisplay dgusdisplay;
 
-// compile-time x^y
-constexpr float cpow(const float x, const int y) { return y == 0 ? 1.0 : x * cpow(x, y - 1); }
-
 ///
 const uint16_t* DGUSLCD_FindScreenVPMapList(uint8_t screen);
 
