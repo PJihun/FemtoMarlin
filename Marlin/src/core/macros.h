@@ -400,6 +400,7 @@
 #define POW(x, y)   powf(x, y)
 #define SQRT(x)     sqrtf(x)
 #define RSQRT(x)    (1.0f / sqrtf(x))
+#define CBRT(x)     cbrtf(x)
 #define CEIL(x)     ceilf(x)
 #define FLOOR(x)    floorf(x)
 #define TRUNC(x)    truncf(x)
