@@ -19,6 +19,19 @@ Please note that ESP3DLib was still in alpha at the moment
 pio run -e mks_tinybee -t upload
 ```
 
+For AI agents (or any non-interactive shell), use the repository wrapper so the build doesn't depend on `pio` being on `PATH`:
+
+```bash
+# from /FEMTO3D/FemtoMarlin
+./buildroot/bin/pio_build mks_tinybee
+
+# from /FEMTO3D
+./FemtoMarlin/buildroot/bin/pio_build mks_tinybee
+
+# make target
+make build BUILD_ENV=mks_tinybee
+```
+
 If auto-detection fails, set your serial port in `ini/esp32.ini` (or pass `--upload-port <port>`).
 
 If your build fails with a missing `Configuration_Secure.h`, create `Marlin/Configuration_Secure.h` with your WiFi credentials:
@@ -231,4 +244,3 @@ If you do have reliable X/Y endstops (or a custom XY homing method), then a full
 - short moves only until geometry is confirmed
 
 After geometry and scaling are stable, tune speed and acceleration upward.
-

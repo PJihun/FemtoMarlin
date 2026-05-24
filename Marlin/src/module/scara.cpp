@@ -269,7 +269,7 @@ float segments_per_second = TERN(AXEL_TPARA, TPARA_SEGMENTS_PER_SECOND, SCARA_SE
                 LM = 2.0f * L1 * L2,
 
                 CG = (LSS - RHO2) / LM,
-                SG = SQRT(1 - POW(CG, 2)), // Method 2
+                SG = SQRT(1 - sq(CG)), // Method 2
                 K1 = L1 - L2 * CG,
                 K2 = L2 * SG,
 
