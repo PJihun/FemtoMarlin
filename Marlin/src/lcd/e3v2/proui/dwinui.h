@@ -149,7 +149,7 @@
 
 // Minimum unit (0.1) : multiple (10)
 #define UNITFDIGITS 1
-#define MINUNITMULT POW(10, UNITFDIGITS)
+#define MINUNITMULT cpow(10.0f, UNITFDIGITS)
 
 constexpr uint8_t  TITLE_HEIGHT = 30,                          // Title bar height
                    MLINE = 53,                                 // Menu line height

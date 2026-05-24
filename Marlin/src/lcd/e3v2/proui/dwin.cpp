@@ -2457,7 +2457,7 @@ void TramC () { Tram(4); }
   }
 
   void LiveMeshMoveZ() {
-    *MenuData.P_Float = MenuData.Value / POW(10, 2);
+    *MenuData.P_Float = MenuData.Value / 100.0f;
     if (!planner.is_full()) {
       planner.synchronize();
       planner.buffer_line(current_position, homing_feedrate(Z_AXIS));
@@ -2530,11 +2530,11 @@ void SetStepsZ() { HMI_value.axis = Z_AXIS, SetPFloatOnClick( MIN_STEP, MAX_STEP
   void SetPidCycles() { SetPIntOnClick(3, 50); }
   void SetKp() { SetPFloatOnClick(0, 1000, 2); }
   void ApplyPIDi() {
-    *MenuData.P_Float = scalePID_i(MenuData.Value / POW(10, 2));
+    *MenuData.P_Float = scalePID_i(MenuData.Value / 100.0f);
     thermalManager.updatePID();
   }
   void ApplyPIDd() {
-    *MenuData.P_Float = scalePID_d(MenuData.Value / POW(10, 2));
+    *MenuData.P_Float = scalePID_d(MenuData.Value / 100.0f);
     thermalManager.updatePID();
   }
   void SetKi() {
