@@ -1,0 +1,3 @@
+## 2026-05-24 - Avoid dynamic `pow()` in formatting macros
+**Learning:** In Marlin's firmware on ESP32, math operations on `double` precision (like standard `pow()`) are extremely slow because the ESP32 only has a single-precision hardware FPU. Software emulation of double precision drastically slows down formatting macros like `INTFLOAT(V,N)`.
+**Action:** Always replace dynamic math library calls with `constexpr` recursive templates or functions when the arguments are known at compile time. Explicitly use `10.0f` (single precision) instead of `10` or `10.0` (double precision) to keep floating-point operations hardware-accelerated.

@@ -19,13 +19,16 @@
  * FTM_WINDOW_SIZE          : Moving window queue size for trajectory planning
  * FTM_BATCH_SIZE           : Standard batch size for trajectory point calculation
  * FTM_ZMAX                 : Maximum step delay window allowed for Input Shaping
- *                            (sized for ZVDDD/3HEI at the minimum shaping frequency
- *                             with zeta in [0, 0.99]; 3072 >= 4 * Ni @ 5Hz, zeta=0.99)
  */
 #define FTM_STEPPERCMD_BUFF_SIZE 1024
 #define FTM_WINDOW_SIZE 64
 #define FTM_BATCH_SIZE  32
-#define FTM_ZMAX 3072
+
+#define FTM_MIN_SHAPE_FREQ 15.0f
+// Max dampening (zeta) allowed
+#define FTM_MAX_DAMPENING 0.25f
+// For 3-Hump EI: max length is approx 2.0 * Period. At 15 Hz this is max 134 samples (at 1000 FTM_FS). Adding extra margin for MZV or smoothing:
+#define FTM_ZMAX 256
 
 // Stepper / Execution Rates
 #define FTM_STEPS_PER_UNIT_TIME 5
