@@ -111,7 +111,9 @@
 
 // Minimum unit (0.1) : multiple (10)
 #define UNITFDIGITS 1
-#define MINUNITMULT pow(10, UNITFDIGITS)
+// Bolt: Removed dynamic pow() for MINUNITMULT which was recalculating 10^1 at runtime using expensive floating-point operations.
+// Replaced with a hardware-friendly 10.0f constant since UNITFDIGITS is hardcoded to 1.
+#define MINUNITMULT 10.0f
 
 #define ENCODER_WAIT_MS                  20
 #define DWIN_VAR_UPDATE_INTERVAL         1024
